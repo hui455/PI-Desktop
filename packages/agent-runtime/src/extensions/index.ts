@@ -17,3 +17,6 @@ export {
 export * from "./model-catalog.js";
 
 export * from "./model-complete-contract.js";
+
+export * from "./image-contract.js";
+export * from "./generate-images.js";
