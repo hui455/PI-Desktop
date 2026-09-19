@@ -860,3 +860,18 @@ commit 并给出警告。插件相对仓库根目录的路径也会被记录，�
 模型目录在下一轮刷新，调用时宿主会重新验证配置与插件权限。
 
 参见[完整示例与限制](../plugin-development.md#trusted-extension-call-another-configured-model)。
+
+## 可信扩展：生成和编辑图片
+
+配置服务商支持的准确图片模型 ID，通过模型目录选取后调用
+`ctx.modelRegistry.generateImages(model, { input }, options)`。
+仅文字输入调用 `/images/generations`，文字与图片共同输入调用 `/images/edits`。
+返回 pi 的 `AssistantImages`，插件自行显示、保存或附加其中的图片。
+当前会话模型和聊天记录保持不变。
+
+优先使用 pi 的图片集合和认证机制；OpenRouter 复用内置适配器。
+其他兼容端点使用独立 Images API，默认采用 Codex 的 JSON 编辑格式；
+需要 multipart 的网关可明确指定 `editFormat: "multipart"`。
+不自动重试，不下载远程图片 URL，支持取消，凭据留在宿主。
+
+参见[生成与编辑示例](../plugin-development.md#trusted-extension-generate-and-edit-an-image)。

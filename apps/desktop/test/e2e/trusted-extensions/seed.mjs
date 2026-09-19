@@ -116,6 +116,16 @@ export default function (pi: any) {
     models: [{ id: "cc-alias-1" }],
     complete: async (model: any) => reply(model, "alias-transport-ok"),
   });
+  pi.registerCommand("host_images", { async handler(_, ctx) {
+    const model = ctx.modelRegistry.getAvailable().find((m) => m.id === "image-fixture");
+    const generated = await ctx.modelRegistry.generateImages(model, { input: [{ type: "text", text: "A blue circle" }] });
+    const image = generated.output.find((part) => part.type === "image");
+    if (!image) throw new Error("No generated fixture image");
+    const edited = await ctx.modelRegistry.generateImages(model, { input: [{ type: "text", text: "Make the circle red" }, image] });
+    log("host_images=" + JSON.stringify({ generated: generated.stopReason, edited: edited.stopReason,
+      mimeType: image.mimeType, bytes: image.data.length,
+      editImages: edited.output.filter((part) => part.type === "image").length, current: ctx.model.id }));
+  } });
   pi.registerCommand("host_complete", { async handler(_, ctx) {
     const target = ctx.modelRegistry.getAvailable().find((m) => m.id === "reviewer-only");
     const found = ctx.modelRegistry.find(target?.provider, "reviewer-only");
@@ -215,6 +225,13 @@ await call("providers.create", {
   authKind: "api_key", secretValue: "sk-e2e-reviewer",
   models: [{ id: "reviewer-only", contextWindow: 32000, maxTokens: 4096, thinkingLevels: ["off"] }],
   defaultModelId: "reviewer-only",
+});
+await call("providers.create", {
+  name: "E2E images", type: "openai_compatible",
+  baseUrl: `http://127.0.0.1:${stubPort}/v1`, apiStyle: "responses",
+  authKind: "api_key", secretValue: "sk-e2e-images",
+  models: [{ id: "image-fixture", contextWindow: 32000, maxTokens: 4096, thinkingLevels: ["off"] }],
+  defaultModelId: "image-fixture",
 });
 const providerId = created.provider?.id ?? created.id;
 await call("settings.set", { defaultProviderId: providerId, defaultModelId: "stub-1", defaultMode: "agent" });

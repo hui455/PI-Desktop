@@ -282,6 +282,52 @@ The additive reverse-RPC methods are `extensions.model.complete` and
 `extensions.model.cancel`. Embedding hosts without completion handlers reject
 these explicitly; ordinary chat and existing extension APIs remain available.
 
+
+### Image generation and editing
+
+`ctx.modelRegistry.generateImages(model, context, options?)` is separate from
+text `complete`, following pi-ai 0.85.1's ImagesModels / ImagesContext /
+AssistantImages contract. The same `getAvailable` / `find` catalog selects a
+configured Host provider/model; callers choose a model that their endpoint
+supports for image generation. Catalog presence alone is not a capability probe.
+Image calls do not change the active session or persist their input/output.
+
+The Host uses pi's image collection and credential resolver. OpenRouter uses
+pi's existing lazy image adapter; other configured providers use an additive
+OpenAI-compatible Images adapter. Text-only input selects `/images/generations`;
+input containing an image selects `/images/edits`. Both are standalone Images
+API paths, not paths below `/responses`. A root endpoint gets `/v1`; existing
+custom base paths are preserved. JSON edits use Codex's
+`images: [{ image_url: "data:..." }]` shape. `editFormat: "multipart"` explicitly
+selects `image[]` file parts for compatible gateways. No automatic format or
+model fallback occurs, and image requests are not automatically retried.
+
+Input is `{ input: [TextContent | ImageContent, ...] }` with a nonempty prompt.
+Output is pi's `AssistantImages`: inline base64 image blocks, optional text and
+usage, and `stopReason`. PNG, JPEG and WebP are supported. Remote image URLs and
+filesystem paths are not accepted or fetched. Encodings/media signatures are
+validated. Inputs and returned images are capped at 20 MiB decoded in total;
+OpenAI-compatible response JSON is bounded at 32 MiB. A request accepts at most
+17 input blocks and 32768 prompt characters.
+
+Options are `signal`, `timeoutMs` (1?300000 ms, default 300000), `n` (1?4),
+`size` (`auto` or dimensions such as `1024x1024`), `quality` (`auto`, `low`,
+`medium`, `high`), `background` (`auto`, `opaque`, `transparent`),
+`outputFormat` (`png`, `jpeg`, `webp`), and `editFormat` (`json`, `multipart`).
+Only signal/timeouts apply to pi's pinned OpenRouter adapter; unsupported image
+options fail explicitly rather than being silently ignored. Image calls share
+the existing per-plugin Host quota, cancellation and authorization checks with
+text completions. HTTP abort stops the local request; provider-side work and
+billing after disconnect are controlled by the provider.
+
+The reverse RPC is `extensions.model.generateImages`; cancellation uses
+`extensions.model.cancel`. Host credentials never enter the extension context.
+Provider error bodies are not exposed, but the OpenAI-compatible adapter reports
+safe HTTP status/error categories. Returned token usage is included when the
+provider supplies it; monetary image pricing is not estimated. Plugins own any
+subsequent save, display or attachment operation. Mask-specific editing and
+Responses API image-generation tools are not part of this adapter.
+
 ## 6. Event mapping
 
 Events fire from the desktop runtime's existing hook points. Handler results

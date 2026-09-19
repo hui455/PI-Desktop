@@ -327,3 +327,27 @@ reasoning；不接受凭据、请求头和任意请求钩子。请求最多 1 Mi
 
 新增反向 RPC 为 `extensions.model.complete` 和 `extensions.model.cancel`。
 不支持此能力的宿主明确拒绝；生图和审批钩子失败策略不在本功能范围内。
+
+## 图片生成和编辑
+
+`modelRegistry.generateImages(model, context, options?)` 独立于文本 `complete`，
+使用 pi-ai 的 `ImagesContext` 和 `AssistantImages` 类型。模型由现有目录选取，
+实际是否支持生图由服务商决定；宿主重新验证准确的模型 ID、授权与项目范围。
+输入输出不自动写入会话，不切换当前模型。
+
+OpenRouter 使用 pi 0.85.1 自带的延迟加载图片适配器；其他已配置服务商使用
+新增的 OpenAI 兼容 Images 适配器。文字输入走 `/images/generations`，带图片
+的输入走 `/images/edits`，不是 `/responses` 下的子路径。默认编辑请求采用
+Codex 的 `images: [{ image_url: "data:..." }]`；可明确指定 multipart `image[]`。
+
+仅接受内联 base64 PNG、JPEG、WebP，不读取文件路径，不下载远程图片 URL。
+校验编码和图片签名，输入及输出图片分别最多 20 MiB，兼容端点响应最多 32 MiB。
+最多 17 个输入块、32768 个提示字符。支持 signal、timeoutMs（最多 300 秒）、
+n（1–4）、size、quality、background、outputFormat、editFormat。
+固定版本 pi 的 OpenRouter 适配器在此接口只接受 signal 与 timeoutMs，其他
+图片选项明确报错。图片调用与文本调用共享插件配额、授权与取消管理。
+
+新增反向 RPC 为 `extensions.model.generateImages`，取消复用
+`extensions.model.cancel`。不自动重试；中断本地 HTTP 请求不能保证服务商
+停止远端计算或退款。返回服务商提供的 token 用量，不估算图片价格。
+遮罩编辑、Responses 图片工具和远程图片下载不在本功能范围内。

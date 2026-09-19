@@ -988,3 +988,29 @@ for lifecycle, limits and errors. The registry snapshot refreshes on the next
 turn. Model identifiers select Host configuration; extensions never supply an
 endpoint or retrieve an API key. Model usage is returned to the extension and
 is not charged to the active assistant message's usage display.
+
+## Trusted extension: generate and edit an image
+
+Configure an image model under its exact provider model ID. Reuse the model
+catalog, then use pi's separate image request shape:
+
+```ts
+const model = ctx.modelRegistry.find(providerId, imageModelId);
+if (!model) throw new Error("Configure the image model first");
+const generated = await ctx.modelRegistry.generateImages(model, {
+  input: [{ type: "text", text: "A blue circle on a white background" }],
+}, { n: 1, size: "1024x1024", signal });
+const image = generated.output.find((part) => part.type === "image");
+if (!image) throw new Error(generated.errorMessage ?? "No image returned");
+const edited = await ctx.modelRegistry.generateImages(model, {
+  input: [{ type: "text", text: "Change the circle to red" }, image],
+}, { signal });
+```
+
+`generated` and `edited` are `AssistantImages`, not chat messages. The plugin can
+save or display their validated base64 image blocks. No conversation history is
+implicitly sent or changed. Use `editFormat: "multipart"` only when your gateway
+requires that edit format; the default JSON shape follows Codex's Images client.
+OpenRouter reuses pi's built-in adapter and accepts only signal/timeouts in this
+Desktop surface. See [the image contract](spec/07-plugins/16-trusted-extensions.md#image-generation-and-editing)
+for limits, errors and supported formats.

@@ -196,6 +196,17 @@ check("independent completion preserves session binding and transcript",
   afterComplete?.session?.modelId === beforeComplete?.session?.modelId &&
   JSON.stringify(afterComplete?.session?.messages) === JSON.stringify(beforeComplete?.session?.messages));
 
+const imageCommand = await invoke("extensions/commands/run", { sessionId, name: "host_images", args: "" });
+check("image generation and edit command ran", imageCommand?.ok === true, JSON.stringify(imageCommand));
+const imageLine = lastLine("host_images=");
+const imageResult = imageLine ? JSON.parse(imageLine.slice("host_images=".length)) : {};
+check("extension receives generated and edited image blocks", imageResult.generated === "stop" && imageResult.edited === "stop" && imageResult.mimeType === "image/png" && imageResult.bytes > 0 && imageResult.editImages === 1, imageLine);
+const afterImages = await tool("pi_session_get", { id: sessionId });
+check("image calls preserve the active session and transcript",
+  afterImages?.session?.providerId === beforeComplete?.session?.providerId &&
+  afterImages?.session?.modelId === beforeComplete?.session?.modelId &&
+  JSON.stringify(afterImages?.session?.messages) === JSON.stringify(beforeComplete?.session?.messages));
+
 const agentRun = await invoke("extensions/commands/run", { sessionId, name: "agent_model", args: "" });
 check("agent_model command ran", agentRun?.ok === true, JSON.stringify(agentRun));
 const registryLine = agentHooks().find((l) => l.startsWith("agent_model registry=")) ?? "";

@@ -7749,7 +7749,7 @@ identify the platform validation still needed.
 | Post-MVP | E2E-022A, E2E-022B, E2E-022C, E2E-024I, E2E-024J, E2E-024K, E2E-024L, E2E-024M (plugin roadmap R2/R3/R6) |
 | Post-baseline local automation | E2E-220 |
 | Post-MVP remote control | E2E-221, E2E-222, E2E-223, E2E-224, E2E-225, E2E-226, E2E-227, E2E-228, E2E-229, E2E-230, E2E-231, E2E-232 |
-| Trusted extensions (R7 v1) | E2E-TRUSTED-EXTENSION-independent-model-completion, E2E-241, E2E-242, E2E-TRUSTED-EXTENSION-custom-agent-stream-and-binding, E2E-243, E2E-244, E2E-245, E2E-PLUGIN-imported-pi-package-skills, E2E-PLUGIN-import-extension-installs-dependencies, E2E-PLUGIN-import-extension-reports-missing-dependency, E2E-PLUGIN-declared-provider-appears-in-the-native-provider-list |
+| Trusted extensions (R7 v1) | E2E-TRUSTED-EXTENSION-independent-model-completion, E2E-TRUSTED-EXTENSION-image-generation-and-edit, E2E-241, E2E-242, E2E-TRUSTED-EXTENSION-custom-agent-stream-and-binding, E2E-243, E2E-244, E2E-245, E2E-PLUGIN-imported-pi-package-skills, E2E-PLUGIN-import-extension-installs-dependencies, E2E-PLUGIN-import-extension-reports-missing-dependency, E2E-PLUGIN-declared-provider-appears-in-the-native-provider-list |
 | M6+ (Project delete) | E2E-PROJECT-delete-removes-project-and-owned-sessions |
 | M6+ (Two-click delete) | E2E-SESSION-two-click-delete-arms-first |
 | C — Conversation & stream (model fallback) | E2E-SUBAGENT-ordered-model-fallback-preserves-work |
@@ -13654,3 +13654,20 @@ the latest destination. These assertions measure work counts, not device FPS.
 - **Automation:** `pnpm test:e2e:trusted-extensions`; targeted catalog, client,
   provider-resolution and service tests cover failure/transition paths.
 - **Status:** Implemented; evidence is recorded with each candidate.
+
+### E2E-TRUSTED-EXTENSION-image-generation-and-edit
+
+- **Preconditions:** Isolated profile, configured image model, local Images API
+  stub and enabled trusted-extension command.
+- **Steps:** Find the image model, generate a PNG, then submit that returned
+  image and an edit prompt through `modelRegistry.generateImages`.
+- **Expected:** The first request uses `/images/generations`, the second uses
+  `/images/edits`, and both return validated image blocks. Active session binding
+  and transcript are unchanged. No auth material reaches the extension.
+- **Specs:** `07-plugins/16-trusted-extensions.md`, Image generation and editing.
+- **Acceptance:** Complete image-plugin user path, cancellation, credential isolation.
+- **Milestone:** Post-MVP.
+- **Automation:** `pnpm test:e2e:trusted-extensions`; image adapter, input-validation,
+  cancellation and quota tests also cover OpenRouter and multipart editing.
+- **Status:** Implemented; live gateway evidence is recorded separately and never
+  substitutes for deterministic tests.
