@@ -309,3 +309,21 @@ v1 交付顺序：打包 spike（E2E-245）、shared 协议类型，然后运行
 | v2 自定义条目是否持久化到 host-core 并参与压缩？ | 持久化；不进入压缩摘要 |
 | v3 是否把 pi CLI `settings.json` 的启用路径作为发现提示读取？ | 只读提示，永不写入 |
 | 扩展工具是否像插件工具一样按项目可选？ | §3.2 的范围是唯一门控 |
+
+## 独立模型调用（#658）
+
+`getAvailable()` 和 `find(providerId, modelId)` 保持同步。宿主在每轮启动时
+提供启用模型的脱敏快照，复用的运行时也会更新。`getAll`/`find` 可返回尚未
+配置凭据的启用模型；`getAvailable` 仅返回有认证条件的模型及扩展注册模型。
+返回值不含端点、凭据或请求头，同名模型通过 provider ID 区分。
+
+`complete(model, context, options?)` 返回 pi-ai `AssistantMessage`，保留文本、
+用量和停止原因；不会切换会话模型、修改聊天记录或执行工具。宿主重新校验
+目标模型、插件授权和项目范围，不允许退回其他模型。扩展注册的模型由其自身
+传输执行。支持 signal、timeoutMs（最多 90 秒）、maxTokens、temperature、
+reasoning；不接受凭据、请求头和任意请求钩子。请求最多 1 MiB / 1000 条消息，
+系统提示最多 32768 字符；宿主调用每插件每 60 秒最多 8 次，每 sidecar 最多
+32 个并发请求。取消、运行时销毁和 sidecar 断开会终止所属请求。
+
+新增反向 RPC 为 `extensions.model.complete` 和 `extensions.model.cancel`。
+不支持此能力的宿主明确拒绝；生图和审批钩子失败策略不在本功能范围内。

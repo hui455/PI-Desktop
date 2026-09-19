@@ -116,6 +116,16 @@ export default function (pi: any) {
     models: [{ id: "cc-alias-1" }],
     complete: async (model: any) => reply(model, "alias-transport-ok"),
   });
+  pi.registerCommand("host_complete", { async handler(_, ctx) {
+    const target = ctx.modelRegistry.getAvailable().find((m) => m.id === "reviewer-only");
+    const found = ctx.modelRegistry.find(target?.provider, "reviewer-only");
+    const result = await ctx.modelRegistry.complete(found, {
+      messages: [{ role: "user", content: "Reply with a greeting", timestamp: 1 }],
+    });
+    log("host_complete=" + JSON.stringify({ provider: result.provider, model: result.model,
+      text: result.content.filter((c) => c.type === "text").map((c) => c.text).join(""),
+      tokens: result.usage.totalTokens, current: ctx.model.id }));
+  } });
   pi.registerCommand("agent_model", { description: "Selects the plugin agent model", async handler(args: string, ctx: any) {
     const models = await ctx.modelRegistry.getAvailable();
     log("agent_model registry=" + models.map((m: any) => m.provider + "/" + m.id).sort().join(","));
@@ -198,6 +208,13 @@ const created = await call("providers.create", {
   secretValue: "sk-e2e",
   models: [{ id: "stub-1", contextWindow: 128000, maxTokens: 4096, thinkingLevels: ["off"] }],
   defaultModelId: "stub-1",
+});
+await call("providers.create", {
+  name: "E2E reviewer", type: "openai_compatible",
+  baseUrl: `http://127.0.0.1:${stubPort}/v1`, apiStyle: "chat_completions",
+  authKind: "api_key", secretValue: "sk-e2e-reviewer",
+  models: [{ id: "reviewer-only", contextWindow: 32000, maxTokens: 4096, thinkingLevels: ["off"] }],
+  defaultModelId: "reviewer-only",
 });
 const providerId = created.provider?.id ?? created.id;
 await call("settings.set", { defaultProviderId: providerId, defaultModelId: "stub-1", defaultMode: "agent" });

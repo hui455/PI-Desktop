@@ -237,6 +237,51 @@ the declaration so `getFlag` works but exposes no CLI or UI in v1;
 `sessionManager` accessors return empty results; UI setters return a no-op
 `dispose`.
 
+
+### Independent model completions
+
+`ctx.modelRegistry.getAvailable()` and `find(providerId, modelId)` remain
+synchronous. The registry includes all enabled Host provider bindings and the
+session's extension-owned agents. `getAll`/`find` include enabled bindings that
+lack credentials; `getAvailable` includes only bindings with configured auth
+(or `authKind: none`). Provider IDs, not display names, distinguish accounts.
+The Host sends a metadata snapshot on each turn launch. Reused runtimes replace
+that snapshot at the idle turn boundary; configuration changes are visible on
+the next turn. Reads return fresh, explicit projections without endpoint URLs,
+headers, credentials, adapter internals, or secret references.
+
+`complete(model, context, options?)` returns a pi-ai `AssistantMessage` with
+content, usage and stop reason. `model.provider` and `model.id` select the target;
+other fields never control the Host endpoint or credentials. Host calls recheck
+the exact enabled provider and configured model, and fail instead of falling
+back. Registered extension agents use their own transport in the sidecar.
+
+`context` is a bounded pi-ai Context, preserving message roles, assistant
+continuity metadata, and tool-result history. It does not accept new tools and
+never starts a tool loop. Options are `signal`, `timeoutMs` (1?90000 ms, default
+90000), `maxTokens` (1?131072), `temperature` (0?2), and `reasoning`. Credentials,
+headers, payload hooks, and arbitrary provider options are not accepted.
+The request is capped at 1 MiB and 1000 messages; system prompts at 32768
+characters. Host calls allow eight requests per owning plugin per 60 seconds
+and 32 concurrent requests per sidecar. These limits do not govern plugin-owned
+transports. Abort, runtime disposal and sidecar connection closure cancel owned
+requests. Current plugin grants and project scope are rechecked before provider
+execution and before delivery. Disabling a plugin prevents subsequent calls;
+an already running request is canceled when its runtime is retired.
+
+Independent calls do not configure the session, append messages, inherit its
+transcript, execute tools, or add usage to the current assistant message. A
+caller must provide the intended context explicitly. Validation, authorization,
+auth-resolution and cancellation failures reject with a stable error code;
+provider failures retain pi's `error` stop reason with a redacted message.
+Completion audit records contain identities and outcome, never prompt text or
+credentials. This feature does not implement image generation or change the
+existing approval-hook error/timeout policy.
+
+The additive reverse-RPC methods are `extensions.model.complete` and
+`extensions.model.cancel`. Embedding hosts without completion handlers reject
+these explicitly; ordinary chat and existing extension APIs remain available.
+
 ## 6. Event mapping
 
 Events fire from the desktop runtime's existing hook points. Handler results

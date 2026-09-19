@@ -959,3 +959,32 @@ for roadmap details.
 - [Developer experience](spec/07-plugins/10-plugin-devex.md)
 - [Permissions](spec/07-plugins/13-plugin-permissions-matrix.md)
 - [Hello reference plugin](https://github.com/vastsa/PI-Desktop/tree/main/examples/plugins/hello)
+
+## Trusted extension: call another configured model
+
+A plugin with `agent.extension` can register a command that completes against
+another configured model without changing the active conversation:
+
+```ts
+pi.registerCommand("second_opinion", {
+  async handler(_args, ctx) {
+    const model = ctx.modelRegistry.getAvailable().find((m) => m.id === "reviewer-model");
+    if (!model) throw new Error("Configure a reviewer model first");
+    const selected = ctx.modelRegistry.find(model.provider, model.id);
+    const result = await ctx.modelRegistry.complete(selected, {
+      messages: [{ role: "user", content: "Review this proposed change...", timestamp: Date.now() }],
+    }, { maxTokens: 1024, timeoutMs: 30000 });
+    if (result.stopReason === "error" || result.stopReason === "aborted") {
+      throw new Error(result.errorMessage ?? "Review did not complete");
+    }
+    await ctx.ui.notify(result.content.filter((part) => part.type === "text").map((part) => part.text).join(""));
+  },
+});
+```
+
+This is the Desktop extension adapter, not the ordinary plugin-host
+`pi.agent.complete` API. See [the supported contract](spec/07-plugins/16-trusted-extensions.md#independent-model-completions)
+for lifecycle, limits and errors. The registry snapshot refreshes on the next
+turn. Model identifiers select Host configuration; extensions never supply an
+endpoint or retrieve an API key. Model usage is returned to the extension and
+is not charged to the active assistant message's usage display.

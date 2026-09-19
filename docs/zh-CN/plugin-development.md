@@ -850,3 +850,13 @@ commit 并给出警告。插件相对仓库根目录的路径也会被记录，�
 - [开发者体验](/zh-CN/spec/07-plugins/10-plugin-devex)
 - [权限](/zh-CN/spec/07-plugins/13-plugin-permissions-matrix)
 - [Hello 参考插件](https://github.com/vastsa/PI-Desktop/tree/main/examples/plugins/hello)
+
+## 可信扩展：独立调用其他模型
+
+声明 `agent.extension` 的插件可通过 `ctx.modelRegistry.getAvailable()` 列出
+可用模型，通过 `find(providerId, modelId)` 精确查找，再调用
+`complete(model, context, options)`。返回值是含用量和停止原因的 pi-ai
+`AssistantMessage`。会话模型和聊天记录保持不变，凭据由宿主处理。
+模型目录在下一轮刷新，调用时宿主会重新验证配置与插件权限。
+
+参见[完整示例与限制](../plugin-development.md#trusted-extension-call-another-configured-model)。

@@ -184,6 +184,18 @@ check("queued user message ran as a turn with the extension tool", queuedSeen);
 const agentHooks = () => readFileSync(join(root, "hooks.log"), "utf8").split("\n");
 const lastLine = (prefix) => [...agentHooks()].reverse().find((l) => l.startsWith(prefix)) ?? "";
 
+const beforeComplete = await tool("pi_session_get", { id: sessionId });
+const hostComplete = await invoke("extensions/commands/run", { sessionId, name: "host_complete", args: "" });
+check("host completion command ran", hostComplete?.ok === true, JSON.stringify(hostComplete));
+const completionLine = lastLine("host_complete=");
+const completion = completionLine ? JSON.parse(completionLine.slice("host_complete=".length)) : {};
+check("extension discovers and calls another configured model", completion.model === "reviewer-only" && completion.text === "Hello from the stub." && completion.tokens > 0, completionLine);
+const afterComplete = await tool("pi_session_get", { id: sessionId });
+check("independent completion preserves session binding and transcript",
+  afterComplete?.session?.providerId === beforeComplete?.session?.providerId &&
+  afterComplete?.session?.modelId === beforeComplete?.session?.modelId &&
+  JSON.stringify(afterComplete?.session?.messages) === JSON.stringify(beforeComplete?.session?.messages));
+
 const agentRun = await invoke("extensions/commands/run", { sessionId, name: "agent_model", args: "" });
 check("agent_model command ran", agentRun?.ok === true, JSON.stringify(agentRun));
 const registryLine = agentHooks().find((l) => l.startsWith("agent_model registry=")) ?? "";
