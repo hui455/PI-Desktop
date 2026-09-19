@@ -13,3 +13,7 @@ export {
   type TrustedExtensionEventName,
   type TrustedExtensionRunnerOptions,
 } from "./runner.js";
+
+export * from "./model-catalog.js";
+
+export * from "./model-complete-contract.js";
