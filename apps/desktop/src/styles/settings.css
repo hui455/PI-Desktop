@@ -2422,9 +2422,8 @@
 .extension-prompt-source-path {
   display: block;
   margin-top: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
   font-size: var(--text-3xs);
 }
 

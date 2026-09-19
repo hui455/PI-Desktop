@@ -13649,7 +13649,7 @@ the latest destination. These assertions measure work counts, not device FPS.
   light/dark themes and Chinese at 520×480. Inspect long project/plugin names in
   rename, instructions, memory, delete, install, settings, permission-review and
   OAuth dialogs; exercise dismissal controls.
-- **Expected:** Source paths ellipsize, other long text wraps, horizontal
+- **Expected:** Full source paths and other long text wrap without clipping; horizontal
   overflow is absent, and the 420px prompt width is unchanged. Tall prompts
   scroll inside the viewport. Close, Escape, typing and radio submission work.
 - **Specs:** `04-ux/08-component-spec.md`, Dialog long-text containment.

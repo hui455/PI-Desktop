@@ -18,11 +18,17 @@ app.whenReady().then(async () => {
       const close = dialog.querySelector('.session-rename-dialog-close,.project-instructions-dialog-close,.plugins-modal-head button');
       const c = close?.getBoundingClientRect();
       const source = dialog.querySelector('.extension-prompt-source-path');
+      const sourceBounds = source?.getBoundingClientRect();
+      const range = document.createRange();
+      if (source) range.selectNodeContents(source);
+      const sourceLines = source ? [...range.getClientRects()] : [];
       return { width: r.width, height: r.height, overflow: dialog.scrollWidth - dialog.clientWidth,
         contained: r.left >= -1 && r.right <= innerWidth + 1 && r.top >= -1 && r.bottom <= innerHeight + 1,
         closeContained: !c || (c.left >= r.left && c.right <= r.right),
         closeHit: !c || close.contains(document.elementFromPoint(c.x + c.width/2, c.y + c.height/2)),
-        ellipsis: !source || (source.scrollWidth > source.clientWidth && getComputedStyle(source).textOverflow === 'ellipsis'),
+        sourceWrapped: !source || (sourceLines.length > 1 && sourceLines.every(line =>
+          line.left >= sourceBounds.left - 1 && line.right <= sourceBounds.right + 1 &&
+          line.top >= sourceBounds.top - 1 && line.bottom <= sourceBounds.bottom + 1)),
       };
     })()`);
   }
@@ -35,7 +41,7 @@ app.whenReady().then(async () => {
   await evaluate('window.dialogFixture.show("extension")');
   const original = await measure();
   check('extension source fits and close is reachable', original.contained && original.overflow <= 1 && original.closeContained && original.closeHit, original);
-  check('long source path is ellipsized without changing dialog width', original.ellipsis && original.width <= 420, original);
+  check('full source path wraps without clipping or changing dialog width', original.sourceWrapped && original.width <= 420, original);
   writeFileSync(join(process.env.PI_DIALOG_ARTIFACT_DIR, 'extension-path.png'), (await win.webContents.capturePage()).toPNG());
   await click('.session-rename-dialog-close');
   check('close dismisses the extension prompt', await evaluate('!document.querySelector("[role=dialog]") && window.dialogFixture.responses.length === 1'));
@@ -47,7 +53,7 @@ app.whenReady().then(async () => {
     win.setContentSize(520, 480);
     await evaluate('window.dialogFixture.show("extension", ' + JSON.stringify({ theme, request, longTitle: true, locale: 'zh-CN' }) + ')');
     const m = await measure();
-    check(theme + ' ' + request + ' wraps long content within the viewport', m.contained && m.overflow <= 1 && m.closeContained, m);
+    check(theme + ' ' + request + ' wraps long content within the viewport', m.contained && m.overflow <= 1 && m.closeContained && m.sourceWrapped, m);
     if (request === 'select') {
       await click('input[type="radio"][value="Second option"]');
       await click('button[type="submit"]');
