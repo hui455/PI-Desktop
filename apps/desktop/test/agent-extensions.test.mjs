@@ -435,6 +435,14 @@ test("the default dependency runner isolates npm config sources and proxies", as
   assert.equal(childEnv.NODE_AUTH_TOKEN, undefined);
 });
 
+test("the default dependency runner still launches the npm shim", async (t) => {
+  const { defaultDependencyRunner } = await import("../electron/main/agent-extensions.ts");
+  const root = mkdtempSync(join(tmpdir(), "pi-npm-version-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const result = await defaultDependencyRunner("npm", ["--version"], root, 30_000);
+  assert.equal(result.code, 0, result.stderr);
+});
+
 test("dependency install: skips without a manifest or dependencies, runs npm with pinned flags, surfaces failures", async () => {
   const root = mkdtempSync(join(tmpdir(), "pi-ax-deps-"));
   const write = (name, json) => {

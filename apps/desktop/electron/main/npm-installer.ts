@@ -147,7 +147,8 @@ export function defaultDependencyRunner(
   envOverrides?: Record<string, string>,
 ): Promise<{ code: number; stderr: string }> {
   return new Promise((resolve, reject) => {
-    // Shell only where npm is a .cmd shim (Windows); every arg is a literal.
+    // Windows npm needs its .cmd shim; native executables must bypass cmd.exe
+    // so source snippets and metacharacters remain literal arguments.
     // A shell kill on Windows terminates the shim, possibly leaving npm
     // itself running — the process-tree kill below handles both.
     // Explicit minimal environment: npm must not see npm auth tokens,
@@ -158,7 +159,7 @@ export function defaultDependencyRunner(
     const isolatedCache = join(cwd, ".npm-cache");
     const child = spawn(command, args, {
       cwd,
-      shell: process.platform === "win32",
+      shell: process.platform === "win32" && !/\.(?:exe|com)$/i.test(command),
       detached: process.platform !== "win32",
       windowsHide: true,
       stdio: ["ignore", "ignore", "pipe"],
