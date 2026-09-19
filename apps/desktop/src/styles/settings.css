@@ -2383,7 +2383,13 @@
   text-overflow: ellipsis;
 }
 
+.extension-prompt-dialog {
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+}
+
 .extension-prompt-message {
+  overflow-wrap: anywhere;
   margin: 0 0 12px;
   color: var(--ds-text-primary);
   font-size: var(--text-sm);
@@ -2398,6 +2404,7 @@
 }
 
 .extension-prompt-option {
+  overflow-wrap: anywhere;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2406,6 +2413,10 @@
   padding: 8px 10px;
   font-size: var(--text-sm);
   cursor: pointer;
+}
+
+.extension-prompt-option input {
+  flex-shrink: 0;
 }
 
 .extension-prompt-source-path {
