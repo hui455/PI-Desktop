@@ -2360,6 +2360,7 @@ Delegation rules:
       modelRegistryFor: (extension) => ({
         ...runtime.extensionModelRegistry(),
         complete: runtime.extensionCompletions.complete.bind(runtime.extensionCompletions, extension.id),
+        generateImages: runtime.extensionCompletions.generateImages.bind(runtime.extensionCompletions, extension.id),
       }),
       getThinkingLevel: () => agentThinkingLevel(runtime.thinkingLevel),
       setThinkingLevel: (level) => {

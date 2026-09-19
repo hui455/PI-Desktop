@@ -147,3 +147,25 @@ test("invalid options, unauthorized extensions and resolver failures remain boun
   await assert.rejects(service.complete(request("error")), (error) => error.errorCode === "PROVIDER_ERROR" && !error.message.includes("fixture-private"));
   service.dispose();
 });
+
+test("text and image requests share plugin quota and revoked grants prevent provider execution", async () => {
+  let calls = 0;
+  let authorized = true;
+  const service = new ExtensionModelCompletionService({
+    authorize: async () => {
+      if (!authorized) throw Object.assign(new Error("revoked"), { errorCode: "PERMISSION_DENIED" });
+      return "same-plugin";
+    }, audit() {}, resolveProvider: async () => { calls++; throw new Error("fixture provider unavailable"); },
+  });
+  const imageRequest = (id) => ({ ...request(id), context: { input: [{ type: "text", text: "A circle" }] } });
+  for (let index = 0; index < 8; index++) {
+    const pending = index % 2 ? service.generateImages(imageRequest(String(index))) : service.complete(request(String(index)));
+    await assert.rejects(pending, { errorCode: "PROVIDER_ERROR" });
+  }
+  await assert.rejects(service.generateImages(imageRequest("limited")), { errorCode: "RATE_LIMITED" });
+  assert.equal(calls, 8);
+  authorized = false;
+  await assert.rejects(service.generateImages(imageRequest("revoked")), { errorCode: "PERMISSION_DENIED" });
+  assert.equal(calls, 8);
+  service.dispose();
+});

@@ -362,6 +362,7 @@ export function createSidecarRuntime({
   });
   s.setTrustedExtensionBridge({
     completeModel: (params) => modelCompletions.complete(params),
+    generateImages: (params) => modelCompletions.generateImages(params),
     cancelModel: (params) => modelCompletions.cancel(params),
     disposeModels: () => modelCompletions.dispose(),
     publishCommands: (params) =>

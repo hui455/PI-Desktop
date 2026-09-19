@@ -71,6 +71,7 @@ const HOST_PROXY_ALLOWED = new Set([
   "extensions.diagnostics.publish",
   "extensions.model.configure",
   "extensions.model.complete",
+  "extensions.model.generateImages",
   "extensions.model.cancel",
   "session.rename",
   "session.create",
@@ -81,6 +82,7 @@ const HOST_PROXY_ALLOWED = new Set([
 
 /** Host-side answers for the `extensions.*` proxy methods. */
 export type TrustedExtensionSidecarBridge = {
+  generateImages?: (params: Record<string, unknown>) => Promise<unknown>;
   completeModel?: (params: Record<string, unknown>) => Promise<unknown>;
   cancelModel?: (params: Record<string, unknown>) => unknown;
   disposeModels?: () => void;
@@ -503,6 +505,10 @@ export class AgentSidecar {
           let result: unknown = { ok: true };
           if (method === "extensions.commands.publish") bridge.publishCommands(params);
           else if (method === "extensions.diagnostics.publish") bridge.publishDiagnostics(params);
+          else if (method === "extensions.model.generateImages") {
+            if (!bridge.generateImages) throw new Error("extension image generation unavailable");
+            result = await bridge.generateImages(params);
+          }
           else if (method === "extensions.model.complete") {
             if (!bridge.completeModel) throw new Error("extension model completion unavailable");
             result = await bridge.completeModel(params);

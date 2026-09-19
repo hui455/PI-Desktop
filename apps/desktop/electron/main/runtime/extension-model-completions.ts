@@ -1,6 +1,7 @@
 import {
   clampThinkingLevel, completeOneShotMessage, EXTENSION_COMPLETE_TIMEOUT_MS,
   extensionModelError, parseExtensionCompleteRequest, type RuntimeProviderConfig,
+  generateHostImages, parseExtensionImageRequest, EXTENSION_IMAGE_TIMEOUT_MS,
 } from "@pi-desktop/agent-runtime";
 
 type Dependencies = {
@@ -21,13 +22,35 @@ export class ExtensionModelCompletionService {
 
   async complete(input: unknown) {
     const request = parseExtensionCompleteRequest(input);
+    return this.run(request, EXTENSION_COMPLETE_TIMEOUT_MS, async (provider, signal) => {
+      const thinkingLevel = clampThinkingLevel(provider, request.options.reasoning ?? "off");
+      const result = await completeOneShotMessage(provider, request.context,
+        thinkingLevel === "omit" ? "off" : thinkingLevel, {
+          signal, maxTokens: request.options.maxTokens, temperature: request.options.temperature,
+          sessionId: `extension-complete:${request.requestId}`,
+        });
+      if (result.stopReason === "error") return { ...result, content: [], errorMessage: "Model completion failed" };
+      return result;
+    });
+  }
+
+  async generateImages(input: unknown) {
+    const request = parseExtensionImageRequest(input);
+    return this.run(request, EXTENSION_IMAGE_TIMEOUT_MS, (provider, signal) =>
+      generateHostImages(provider, request.context, { ...request.options, signal }));
+  }
+
+  private async run<T extends { stopReason: string }>(request: {
+    sessionId: string; extensionId: string; requestId: string; providerId: string; modelId: string;
+    options: { timeoutMs?: number };
+  }, defaultTimeout: number, execute: (provider: RuntimeProviderConfig, signal: AbortSignal) => Promise<T>): Promise<T> {
     if (this.disposed) throw extensionModelError("TURN_ABORTED", "Extension connection closed");
     if (this.pending.has(request.requestId)) throw extensionModelError("INVALID_ARGUMENT", "Duplicate completion request");
     if (this.pending.size >= 32) throw extensionModelError("RATE_LIMITED", "Too many pending extension completions");
     const controller = new AbortController();
     this.pending.set(request.requestId, { sessionId: request.sessionId, extensionId: request.extensionId, controller });
     let timedOut = false;
-    const timer = setTimeout(() => { timedOut = true; controller.abort(); }, request.options.timeoutMs ?? EXTENSION_COMPLETE_TIMEOUT_MS);
+    const timer = setTimeout(() => { timedOut = true; controller.abort(); }, request.options.timeoutMs ?? defaultTimeout);
     let rejectAbort: (error: Error) => void = () => {};
     const interrupted = new Promise<never>((_, reject) => { rejectAbort = reject; });
     const checkAborted = () => {
@@ -50,19 +73,10 @@ export class ExtensionModelCompletionService {
       checkAborted();
       await this.deps.authorize(request.sessionId, request.extensionId);
       checkAborted();
-      const thinkingLevel = clampThinkingLevel(provider, request.options.reasoning ?? "off");
-      const result = await completeOneShotMessage(provider, request.context,
-        thinkingLevel === "omit" ? "off" : thinkingLevel, {
-          signal: controller.signal, maxTokens: request.options.maxTokens,
-          temperature: request.options.temperature,
-          sessionId: `extension-complete:${request.requestId}`,
-        });
+      const result = await execute(provider, controller.signal);
       checkAborted();
       await this.deps.authorize(request.sessionId, request.extensionId);
       checkAborted();
-      // Provider error bodies can echo a URL, headers or credentials. Return
-      // pi's stop semantics but never forward raw transport diagnostics.
-      if (result.stopReason === "error") return { ...result, content: [], errorMessage: "Model completion failed" };
       return result;
     };
     let outcome = "error";

@@ -43,3 +43,17 @@ it("rejects malformed JavaScript arguments before acquiring request resources", 
   client.abort();
   expect(call).not.toHaveBeenCalled();
 });
+
+it("image requests use the same runtime cancellation ownership", async () => {
+  const methods: string[] = [];
+  const client = new ExtensionModelCompletions({ async call<T>(method: string): Promise<T> {
+    methods.push(method);
+    if (method === "extensions.model.generateImages") return new Promise<T>(() => {});
+    return {} as T;
+  } }, "s");
+  const pending = client.generateImages("ext", model, { input: [{ type: "text", text: "A circle" }] });
+  const rejected = expect(pending).rejects.toMatchObject({ errorCode: "TURN_ABORTED" });
+  client.dispose();
+  await rejected;
+  expect(methods).toEqual(["extensions.model.generateImages", "extensions.model.cancel"]);
+});

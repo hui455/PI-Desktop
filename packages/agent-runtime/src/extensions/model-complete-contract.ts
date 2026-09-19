@@ -2,7 +2,7 @@ import type { Api, AssistantMessage, Context, Model, SimpleStreamOptions } from 
 import { Type } from "typebox";
 import { Check } from "typebox/value";
 
-export type TrustedExtensionModelRegistry = ReturnType<typeof import("./model-catalog.js").createExtensionModelCatalog> & {
+export type TrustedExtensionModelRegistry = import("./image-contract.js").ExtensionImageRegistry & ReturnType<typeof import("./model-catalog.js").createExtensionModelCatalog> & {
   complete(model: Pick<Model<Api>, "provider" | "id">, context: Context, options?: ExtensionCompleteOptions): Promise<AssistantMessage>;
 };
 
