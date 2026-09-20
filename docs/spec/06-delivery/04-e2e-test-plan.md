@@ -5427,6 +5427,13 @@ identify the platform validation still needed.
      no repair request starts.
   9. Reload the session and verify that only the completed response or the
      single terminal failed assistant remains durable.
+  10. Alternate one socket failure and one successful tool-call response for
+      eleven actual Read calls, then fail once and return a final answer.
+      Verify all twelve independent failures recover in the same user turn,
+      each beginning at retry 1, with no repeated tool execution.
+  11. After a recovered tool response, keep the next response failing. Verify
+      it receives ten fresh retries and terminates once with `retryAttempt: 10`.
+      Restore the fixture, click Continue, and verify completion in the UI.
 - **Expected**:
   - `terminated` is classified as `STREAM_FAILED`, and an upstream gateway
     `502`/`503`/`504` as retryable `PROVIDER_ERROR`.
@@ -5437,7 +5444,9 @@ identify the platform validation still needed.
     duplicate assistant bubble or terminal error notification.
   - A mid-stream 502 is retried rather than surfacing immediately. The
     mixed-phase fixture spends one counter across both phases and makes eleven
-    attempts in total, not one retry per phase. Observed waits without a
+    attempts in total, not one retry per phase. A complete successful response
+    replenishes both retry budgets for the next tool round. Headers and partial
+    output do not. Observed waits without a
     `Retry-After` header are 1, 2, 4, then 8 seconds for every later retry,
     identical in both phases.
   - Only the failed request is replayed: the session, its transcript, and any
@@ -5471,8 +5480,13 @@ identify the platform validation still needed.
   `08-meta/decisions-log.md` (D186, D259, D378), ADR 0050, ADR 0128, ADR 0206
 - **Acceptance**: C (chat & stream), F (persistence), H (diagnostics), Quality
 - **Milestone**: M5
-- **Status**: Unit-covered (`agent-errors.test.ts`, `provider-retry.test.ts`,
-  `runtime.test.ts`, `subagent.test.ts`); full provider/UI journey Draft
+- **Status**: Retry and successful-response budget boundaries covered by
+  `provider-recovery-flow.test.ts` through real agent loops. Desktop socket
+  failure, partial-stream recovery, Responses recovery, exhaustion, Continue,
+  and eleven-tool-round recovery run in `scripts/e2e-provider-recovery.mjs`.
+  Existing classification coverage: `agent-errors.test.ts`,
+  `provider-retry.test.ts`, `runtime.test.ts`, `subagent.test.ts`.
+  Other scenario variants remain Draft.
 
 #### E2E-149: Recover provider rate limits (429) silently in place
 
@@ -5504,6 +5518,10 @@ identify the platform validation still needed.
     attempts, never multiplies attempts through nested pi-ai retries, and
     emits no intermediate assistant error, lifecycle `error`, `turn_end`, or
     `agent_end`.
+    A complete successful response, including a tool-call response, resets both
+    budgets before the next model request. Independent recovered rate limits
+    across more than ten tool rounds must not terminate the user turn or a
+    builtin subagent; partial output alone must not replenish either budget.
   - A recovered attempt removes the failed assistant from model context and
     reuses its visible assistant message id. The transcript has one assistant
     bubble and one terminal lifecycle; bounded retry diagnostics retain the
