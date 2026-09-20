@@ -98,6 +98,10 @@ export async function transcriptStatusProbe() {
       indicator(id)?.getAttribute("role") === "status",
       `${label}: accessible status`,
     );
+    check(
+      !host.querySelector(".message-row.assistant .message-actions"),
+      `${label}: running turn has no empty action toolbar`,
+    );
   };
   const noStatus = (label: string) =>
     check(!host.querySelector(".transcript-runtime-status > *"), label);
@@ -123,8 +127,103 @@ export async function transcriptStatusProbe() {
         readingWindow: false,
       });
       oneStatus("working-indicator", `${mode}: send before first event`);
-      await render({ messages: [user, answer] });
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      const userBubble = host.querySelector(".message-row.user .message-bubble");
+      const waitingLabel = indicator("working-indicator")?.querySelector(".working-indicator-label");
+      const initialGap = userBubble && waitingLabel
+        ? waitingLabel.getBoundingClientRect().top - userBubble.getBoundingClientRect().bottom
+        : Number.NaN;
+      check(Math.abs(initialGap - 52) <= 0.01,
+        `${mode}: initial wait retains the user action row (${initialGap}px)`);
+
+      await render({ messages: [{ ...user, revisionCount: 3, activeRevision: 2 }] });
+      for (const width of [window.innerWidth, 320]) {
+        host.style.width = `${width}px`;
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+        const buttons = [...host.querySelectorAll<HTMLButtonElement>(".message-row.user .message-actions button")];
+        const copy = buttons.find((button) => button.getAttribute("aria-label") === i18n.t("chat.copy"));
+        check(buttons.length === 5 && copy && !copy.disabled &&
+          buttons.filter((button) => button !== copy).every((button) => button.disabled),
+          `${mode}/${width}: copy available; edit, delete and revisions disabled during wait`);
+        copy?.focus();
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+        const status = host.querySelector(".transcript-runtime-status")?.getBoundingClientRect();
+        check(Boolean(status) && buttons.every((button) => {
+          const box = button.getBoundingClientRect();
+          return status && (box.left >= status.right || box.top >= status.bottom || box.right <= status.left || box.bottom <= status.top);
+        }), `${mode}/${width}: status and all user action hit targets do not overlap`);
+        const box = copy?.getBoundingClientRect();
+        check(copy && document.activeElement === copy && box &&
+          copy.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)),
+          `${mode}/${width}: copy receives keyboard focus and pointer hit`);
+      }
+      host.style.width = "";
+      for (const [target, label] of [
+        [host.querySelector(".transcript-runtime-status"), "chat.conversationMenu"],
+        [host.querySelector(".message-row.user .message-bubble"), "chat.messageMenu"],
+      ] as const) {
+        flushSync(() => target?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, clientX: 80, clientY: 160 })));
+        check(document.querySelector('[role="menu"]')?.getAttribute("aria-label") === i18n.t(label),
+          `${mode}: ${label} retains context menu ownership`);
+        flushSync(() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+      }
+      activity({ phase: "waiting-model", since: Date.now() });
+      oneStatus("run-activity-indicator", `${mode}: first wait receives phase changes`);
+      await render({ isRunning: false });
+      check(!host.querySelector(".transcript-runtime-status") &&
+        host.querySelectorAll(".message-row.user button:disabled").length === 0,
+        `${mode}: cancelling before output restores user actions and normal row`);
+      activity(undefined);
+      await render({ messages: [user, answer], isRunning: true });
       oneStatus("working-indicator", `${mode}: partial answer remains active`);
+      // Geometry needs painted content, including content-visibility layout.
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => resolve()),
+      );
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => resolve()),
+      );
+      const fragment = host.querySelector(".assistant-turn-fragment");
+      const statusLabel = indicator("working-indicator")?.querySelector(
+        ".working-indicator-label",
+      );
+      const gap =
+        fragment && statusLabel
+          ? statusLabel.getBoundingClientRect().top -
+            fragment.getBoundingClientRect().bottom
+          : Number.NaN;
+      check(
+        Math.abs(gap - 24) <= 0.01,
+        `${mode}: status stays adjacent to partial answer (${gap}px)`,
+      );
+      await render({
+        messages: [
+          { ...user, id: "older-user" },
+          { ...answer, id: "older-answer", status: "complete" },
+          user,
+          answer,
+        ],
+      });
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => resolve()),
+      );
+      const olderTurn = host.querySelector(
+        '.assistant-turn:has([data-message-id="older-answer"])',
+      );
+      check(
+        olderTurn &&
+          getComputedStyle(olderTurn).paddingBottom === "14px" &&
+          olderTurn.querySelectorAll(".message-actions button").length === 3,
+        `${mode}: completed history retains its spacing and actions`,
+      );
+      await render({ messages: [user, answer], readingWindow: true });
+      const readingTurn = host.querySelector(".assistant-turn");
+      check(
+        readingTurn && getComputedStyle(readingTurn).paddingBottom === "14px",
+        `${mode}: history reading retains the normal message spacing`,
+      );
+      await render({ readingWindow: false });
       // No more deltas: an unchanged streaming message must not erase feedback.
       await render();
       oneStatus("working-indicator", `${mode}: quiet partial answer`);
@@ -165,7 +264,37 @@ export async function transcriptStatusProbe() {
           !host.querySelector(".transcript-runtime-status"),
           `${mode}: ${status} removes lane`,
         );
+        const settledTurn = host.querySelector(".assistant-turn");
+        check(
+          settledTurn && getComputedStyle(settledTurn).paddingBottom === "14px",
+          `${mode}: ${status} restores the normal message spacing`,
+        );
+        check(
+          host.querySelectorAll(
+            ".message-row.assistant .message-actions button",
+          ).length === 3,
+          `${mode}: settled non-error content retains copy, branch, and retry`,
+        );
       }
+      await render({
+        messages: [
+          user,
+          {
+            ...answer,
+            status: "error",
+            error: {
+              code: "UNKNOWN",
+              message: "Fixture error",
+              retriable: false,
+            },
+          },
+        ],
+        isRunning: false,
+      });
+      check(
+        !host.querySelector(".message-row.assistant .message-actions"),
+        `${mode}: failed turn has no empty toolbar`,
+      );
     }
     await render({ messages: [user, answer], isRunning: true });
     for (const phase of [
@@ -213,6 +342,12 @@ export async function transcriptStatusProbe() {
     check(
       host.querySelector(".permission-card button"),
       "permission actions remain mounted",
+    );
+    const permissionTurn = host.querySelector(".assistant-turn");
+    check(
+      permissionTurn &&
+        getComputedStyle(permissionTurn).paddingBottom === "14px",
+      "permission card keeps the normal message spacing",
     );
     await render({ pendingPermission: undefined });
     flushSync(() =>

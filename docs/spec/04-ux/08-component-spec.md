@@ -1410,6 +1410,14 @@ storage but compose into one assistant turn until the next user message.
   `role="article"` turn. The turn exposes one trailing meta row and one action
   toolbar; Copy joins all contentful fragments in order, while Fork and
   Regenerate use the last contentful assistant message as the durable boundary.
+  The toolbar mounts only when those actions are available: active turns and
+  turns with assistant errors reserve no empty toolbar box. Running feedback
+  stays adjacent to the last output instead of sitting below invisible buttons.
+  Preserve the normal 14px assistant bottom padding and the runtime lane's
+  full reserve (24px from a plain-text fragment to its status label at the
+  default scale). User messages retain their real hover-action row and normal
+  spacing, including before the first assistant output. Opacity hides those
+  buttons without removing their space, so hover does not shift content.
 - Toggle Thinking disclosure: expand/collapse reasoning independently from the
   final answer. The latest reasoning row opens while it streams and closes when
   the turn settles only if the user has not interacted with it. The expanded

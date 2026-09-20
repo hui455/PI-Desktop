@@ -4961,12 +4961,31 @@ identify the platform validation still needed.
   Planning/Goal or Working. Pending user interaction suppresses it; terminal
   turns and history reading remove it. Switching sessions uses that session's
   status only. Existing content and permission actions remain available.
+  Active and assistant-error turns mount no empty action toolbar. A partial
+  answer has 24 CSS px between its fragment box and the status label
+  at the default font scale; settled non-error content retains Copy, Fork,
+  and Regenerate. Check detailed and compact modes. History reading and
+  permission cards retain normal message padding. Ending a turn keeps pinned
+  follow at the bottom while restoring the normal toolbar height. A scrolled-up reader keeps the exact text position
+  and scroll offset.
 - **Specs linked**: `04-ux/08-component-spec.md`, `04-ux/09-interaction-patterns.md`
 - **Acceptance**: C (chat stream), Quality (interaction and accessibility)
 - **Milestone**: M5
 - **Status**: Automated by `pnpm test:e2e:transcript`
   (`scripts/e2e/transcript-status.tsx`). Reproduces issue #669 on upstream
   `ecece8f570fc0c18f21e4941eafe52244a7c6e5f`; no real-provider claim.
+
+#### E2E-CHAT-initial-wait-spacing
+
+- Send a user message before any assistant output: retain the original user
+  action row and spacing (52px bubble-to-status in the default text fixture).
+- At wide and narrow transcript widths, Copy remains focusable and pointer
+  reachable; edit/delete/revision controls retain their disabled running state.
+  Status and action hit targets never overlap, including revision pagers.
+- Right-click the status/background for the conversation menu and the message
+  for its own menu. Change runtime phase, receive first output, or stop before
+  output: exactly one status follows the active turn and terminal actions return.
+- Coverage: `scripts/e2e/transcript-status.tsx`, `pnpm test:e2e:transcript`.
 
 #### E2E-CHAT-runtime-status-keeps-row-position
 

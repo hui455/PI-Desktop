@@ -336,6 +336,8 @@ globalThis.transcriptRuntimeSlotProbe = async () => {
       scrollTop: scroller()?.scrollTop ?? null,
       firstRowTop: rows[0]?.getBoundingClientRect().top ?? null,
       lastRowBottom: rows.at(-1)?.getBoundingClientRect().bottom ?? null,
+      lastTextBottom: [...host.querySelectorAll(".assistant-turn-fragment")]
+        .at(-1)?.getBoundingClientRect().bottom ?? null,
       laneHeight: element?.getBoundingClientRect().height ?? null,
       laneChildren: element?.childElementCount ?? null,
       laneText: element?.textContent ?? null,
@@ -492,6 +494,41 @@ globalThis.transcriptRuntimeSlotProbe = async () => {
       lane() === null,
       "an idle transcript still reserved the runtime status lane",
     );
+    const compareEnd = (label: string, ended: Snap, active: Snap, pinned: boolean) => {
+      // Ending restores the real toolbar; its height need not match the lane.
+      // Unpinned readers must keep their text position despite that change.
+      if (!pinned) {
+        for (const field of ["scrollTop", "firstRowTop", "lastTextBottom"] as const) {
+          const before = active[field];
+          const after = ended[field];
+          check(before !== null && after !== null && Math.abs(after - before) <= 0.01,
+            `${label}: ${field} changed (${after} vs ${before})`);
+        }
+      }
+      const element = scroller();
+      if (pinned && element) {
+        check(Math.abs(element.scrollHeight - element.clientHeight - element.scrollTop) <= 1,
+          `${label}: lost pinned follow`);
+      }
+    };
+    compareEnd("pinned turn ends", snapshot(), cleared, true);
+
+    running = true;
+    flushSync(paint);
+    await settle();
+    const scrollElement = scroller();
+    if (scrollElement) {
+      scrollElement.dispatchEvent(new WheelEvent("wheel", { deltaY: -120, bubbles: true }));
+      scrollElement.scrollTop = Math.max(0, scrollElement.scrollTop - 120);
+      scrollElement.dispatchEvent(new Event("scroll", { bubbles: true }));
+    }
+    await settle();
+    const reading = snapshot();
+    check((reading.scrollTop ?? 0) < (cleared.scrollTop ?? 0), "fixture did not scroll up before stopping");
+    running = false;
+    flushSync(paint);
+    await settle();
+    compareEnd("scrolled-up turn ends", snapshot(), reading, false);
     check(
       renderErrors.length === 0,
       `React render failed: ${renderErrors.map(String).join("; ")}`,
