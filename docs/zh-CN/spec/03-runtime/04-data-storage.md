@@ -59,11 +59,15 @@ host-core 之前被解析为绝对路径。
  ├── plugins/             # code + data + registry.json (unchanged, spec 07-11)
  ├── logs/                # NDJSON app/<category>, host/<category>, agent/<category> logs
  ├── cache/               # disposable caches
+ ├── crash-dumps/         # local Crashpad minidumps (never uploaded; D602)
+ ├── crash-dumps.json     # last-reported dump mtime (best-effort marker)
  ├── review-changes/<sessionId>/<snapshotId>/
  │    ├── before          # bounded pre-tool bytes, when reversible
  │    └── meta.json       # path, hashes, diff state, and ownership
  └── scratch/<sessionId>/ # per-session agent temp files (D114), including
                           # composer pasted files under pasted/ — deleted
+                          # with the session; startup sweep removes orphans
+
                           # with the session; startup sweep removes orphans
                           # and stale dirs
 ```

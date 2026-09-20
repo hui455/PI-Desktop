@@ -84,6 +84,16 @@ errors remain readable instead of becoming replacement characters.
 | Node agent crash | abort active turns and live approval waiters/queue entries, keep pending sessions in their contract mode, preserve already-approved Agent mode in Rust, restart sidecar, and never replay an execution |
 | Electron main crash | full app exit |
 
+Crashpad is started local-only (`uploadToServer: false`) before `ready`, and
+dumps are stored under `<data_dir>/crash-dumps` (D602) so a
+`PI_DESKTOP_DATA_DIR` profile does not share dumps with another installation.
+The next launch that holds the single-instance lock writes one diagnostics
+line for dumps newer than `crash-dumps.json`. Crashpad records
+Chromium-process crashes (main, renderer, GPU, utility); a renderer crash the
+app already recovered still leaves a dump and is logged at warn. Host-core and
+sidecar crashes stay on the supervisor path in this section and the `host` /
+`agent` log channels.
+
 Broken stdout/stderr (`EPIPE`/`EIO`) is not a main-process crash. Main ignores
 those writes so a Linux AppImage or GUI launch without a live TTY keeps
 supervising host/sidecar instead of showing Electron's uncaught exception

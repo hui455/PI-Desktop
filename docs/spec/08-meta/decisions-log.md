@@ -303,6 +303,8 @@ Gold source: local Codex electron captures; latest row wins where rows conflict.
 | D278 | Subagent model selection | **Task.model overrides definition pin; only models with `availableForSubagents` appear in the delegation catalog; on-demand RPC resolves models not pre-resolved at launch** | The parent agent needs per-task model choice without exposing the full provider configuration. An opt-in flag keeps the delegation catalog bounded and intentional, and on-demand resolution avoids stale bindings for models added after sidecar launch. See §3/02 §5f, §3/11 §7, and E2E-166. |
 | D365 | Named quiet intervals on the live activity row | **Amend D338 / ADR 0175: `AgentActivity` adds `preparing`, `compacting`, and `recovering`; `starting` shows its own label; `waiting-subagents` carries a live running snapshot (`name`, `lastPhase`, `lastToolName`) that updates on child tool/thinking changes, not on every token. The row stays one compact inline status and does not restore an activity-group capsule.** | Compaction, silent-turn recovery, the post-tool gap, and startup all looked like a stuck generic wait, and a parent wait hid what its delegates were doing (ADR 0198, E2E-008c / E2E-094) |
 | D599 | A development build is its own installation | **Narrow D236 / amend ADR 0094: a development build (unpackaged, or `PI_DESKTOP_DEV=1`) takes `PI-Desktop Dev` as its Electron `userData` — and with it the single-instance lock, renderer `localStorage`, the plugin panel partitions, and browser pane cookies — and reads `~/.pi-desktop-dev`. An explicit `--user-data-dir` still wins, which is how the E2E harnesses point a build at a throwaway profile. A packaged installation keeps `PI-Desktop` and `~/.pi-desktop`, so no existing profile is relocated. `PI_DESKTOP_DATA_DIR` still overrides either profile and is made absolute before it reaches host-core as a child-process environment variable; Electron main publishes the resolved directory back to that variable so the plugin runtime reads one root. No IPC, protocol, schema, or packaged-installation path change. See `03-runtime/07-process-model.md` and E2E-150.** | A packaged app that was already running held the lock, so `pnpm dev` quit on arrival; a development host that won the race instead put a second host-core over the same single-writer `pi.sqlite`, the outbox, and the log tree. |
+| D602 | Crash dumps stay in the data directory | **Electron's Crashpad reporter starts local-only (`uploadToServer: false`) before `ready`. Dumps live under `<data_dir>/crash-dumps`, not the default Electron `userData` crashDumps path, so a `PI_DESKTOP_DATA_DIR` profile does not share dumps. The next lock-holding launch writes one `diagnostics` line for dumps newer than `crash-dumps.json`, classified by Crashpad `ptype`: `error` if any new dump is the browser/main process, `warn` for recovered renderer/GPU/utility crashes. Host-core and sidecar crashes stay on the supervisor path. No upload, no IPC, no schema change.** | A crash left a minidump nobody read. Crashpad also records recovered renderer crashes, so a next-launch `error` that said the previous run died was a lie; and dumps outside the data directory escaped `PI_DESKTOP_DATA_DIR` isolation. |
+
 
 ## M0. Model catalog decisions
 
@@ -6437,3 +6439,21 @@ that was sitting at the bottom — including after the turn had finished.
 - No IPC channel, host protocol, storage schema, persisted setting, or i18n key
   changed: every sentence keeps its key and only its placement moved. See
   `04-ux/06-settings-ia.md` and `04-ux/07-ui-design-system.md`.
+
+## 2026-09-20 — Crash dumps stay in the data directory (D602)
+
+- Crashpad starts local-only (`uploadToServer: false`) before `ready`. Dumps
+  live under `<data_dir>/crash-dumps`, not Electron's default `userData`
+  crashDumps path, so a `PI_DESKTOP_DATA_DIR` profile does not share dumps
+  with another installation. The marker `crash-dumps.json` records the newest
+  mtime already reported.
+- The next lock-holding launch writes one `diagnostics` line for dumps newer
+  than that marker, classified by Crashpad's `ptype` annotation: `error` if
+  any new dump is the browser/main process, `warn` for a recovered renderer,
+  GPU, or utility crash. A scan failure is one `crashDumpReportFailed` warn
+  and never blocks the first window.
+- Host-core and sidecar crashes stay on the supervisor path and the `host` /
+  `agent` log channels. Nothing is uploaded. See
+  `03-runtime/07-process-model.md` §4, `03-runtime/09-logging-and-observability.md`,
+  and `03-runtime/04-data-storage.md`.
+

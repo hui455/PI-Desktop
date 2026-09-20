@@ -66,6 +66,13 @@ queued/running `plan_approvals` 执行状态已中断并中止它们
 | Node 代理崩溃 | 中止活动轮次和实时批准 waiters/queue 条目，在合同模式下保留待处理会话，在 Rust 中保留已批准的 Agent 模式，重新启动 sidecar，并且从不重播执行 |
 | Electron 主要崩溃 | 完整的应用程序退出 |
 
+Crashpad 在 `ready` 之前以本地模式启动（`uploadToServer: false`），转储放在
+`<data_dir>/crash-dumps`（D602），因此 `PI_DESKTOP_DATA_DIR` profile 不会与
+其它安装共用转储。下一次持有单实例锁的启动会为新于 `crash-dumps.json` 的
+转储写一条诊断记录。Crashpad 记录 Chromium 进程崩溃（main、renderer、GPU、
+utility）；应用已经恢复的 renderer 崩溃仍会留下转储，并记为 warn。host-core
+与 sidecar 崩溃仍走本节的监督器路径以及 `host` / `agent` 日志通道。
+
 断开的 stdout/stderr（`EPIPE`/`EIO`）不是主进程崩溃。Main 会忽略这些写入，
 因此 Linux AppImage 或没有活动 TTY 的 GUI 启动会继续监管 host/sidecar，而不是
 弹出 Electron 的未捕获异常对话框。

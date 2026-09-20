@@ -69,6 +69,8 @@ to an absolute path before it reaches host-core as a child-process variable.
  ├── plugins/             # code + data + registry.json (unchanged, spec 07-11)
  ├── logs/                # NDJSON app/<category>, host/<category>, agent/<category> logs
  ├── cache/               # disposable caches
+ ├── crash-dumps/         # local Crashpad minidumps (never uploaded; D602)
+ ├── crash-dumps.json     # last-reported dump mtime (best-effort marker)
  ├── review-changes/<sessionId>/<snapshotId>/
  │    ├── before          # bounded pre-tool bytes, when reversible
  │    └── meta.json       # path, hashes, diff state, and ownership
@@ -80,6 +82,8 @@ to an absolute path before it reaches host-core as a child-process variable.
 ```
 
 One database file keeps cross-entity writes transactional (e.g. session +
+turn + artifact in one commit). The DB stores **no large payloads**: message
+
 turn + artifact in one commit). The DB stores **no large payloads**: message
 content lives in `sessions/`, attachments and tool outputs beyond the limits
 of [16-tool-result-limits](16-tool-result-limits.md) live on disk, referenced

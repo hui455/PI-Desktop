@@ -307,6 +307,8 @@
 | D278 | 子代理模型选择 | **Task.model 覆盖定义中固定的模型；只有带 `availableForSubagents` 的模型出现在委托目录中；启动时未预解析的模型由按需 RPC 解析** | 父代理需要按任务选择模型，又不能暴露完整的服务商配置。选择加入的标志让委托目录保持有界且有意为之，按需解析则避免 sidecar 启动后新增模型的绑定过期。参见 §3/02 §5f、§3/11 §7 与 E2E-166。 |
 | D365 | 为实时活动行的每个安静间隔命名 | **修订 D338 / ADR 0175：`AgentActivity` 增加 `preparing`、`compacting`、`recovering`；`starting` 显示独立标签；`waiting-subagents` 携带实时运行快照（`name`、`lastPhase`、`lastToolName`），随子级工具/思考变化更新而非逐 token 更新。该行保持为一条紧凑的内联状态，不恢复活动分组胶囊。** | 压缩、静默回合恢复、工具后间隙与启动都像卡住的通用等待，父级等待也隐藏了委托在做什么（ADR 0198，E2E-008c / E2E-094） |
 | D599 | 开发构建是一个独立安装 | **收窄 D236 / 修订 ADR 0094：开发构建（未打包，或 `PI_DESKTOP_DEV=1`）以 `PI-Desktop Dev` 作为 Electron `userData`（随之独立的单实例锁、渲染层 `localStorage`、插件面板 partition 与浏览器面板 Cookie），数据目录为 `~/.pi-desktop-dev`。显式 `--user-data-dir` 仍然优先，E2E 装置正是用它把构建指向临时 profile。正式安装仍保持 `PI-Desktop` 与 `~/.pi-desktop`，既有 profile 不会被搬迁。`PI_DESKTOP_DATA_DIR` 仍优先于两种 profile，并在作为子进程环境变量传给 host-core 之前被绝对化；Electron 主进程把解析结果回写到该变量，使插件运行时读到同一个根目录。不改 IPC、协议、schema 或正式安装路径。见 `03-runtime/07-process-model.md` 与 E2E-150。** | 已在运行的正式版持有锁，`pnpm dev` 一启动就退出；而抢到锁的开发 host 会把第二个 host-core 压到同一个单写者 `pi.sqlite`、outbox 与日志树上。 |
+| D602 | 崩溃转储留在数据目录 | **Electron 的 Crashpad 报告器在 `ready` 之前以本地模式启动（`uploadToServer: false`）。转储放在 `<data_dir>/crash-dumps`，而不是 Electron 默认的 `userData` crashDumps 路径，因此 `PI_DESKTOP_DATA_DIR` profile 不会与其它安装共用转储。下一次持有单实例锁的启动会为新于 `crash-dumps.json` 的转储写一条 `diagnostics` 记录，按 Crashpad `ptype` 分类：任一新转储属于 browser/main 进程则为 `error`，已恢复的 renderer/GPU/utility 崩溃为 `warn`。host-core 与 sidecar 崩溃仍走监督器路径。不上传，不改 IPC，不改 schema。** | 崩溃留下的 minidump 无人读取。Crashpad 也会记录已恢复的渲染进程崩溃，因此下次启动用 `error` 声称上次运行已死是错的；而数据目录之外的转储会逃出 `PI_DESKTOP_DATA_DIR` 隔离。 |
+
 
 ## M0. 模型目录决策
 
@@ -4572,3 +4574,18 @@ that amendment are retired by ADR 0268; the upstream work-panel lifecycle stays.
   渲染。无迁移、协议或 schema 变更。
 - 渲染器产物不再产出任何应用字体面，只剩 KaTeX 的 `woff2` 字形。见 ADR 0298、
   `04-ux/06-settings-ia.md`、`04-ux/07-ui-design-system.md` 与 E2E-126。
+
+## 2026-09-20 —— 崩溃转储留在数据目录（D602）
+
+- Crashpad 在 `ready` 之前以本地模式启动（`uploadToServer: false`）。转储放在
+  `<data_dir>/crash-dumps`，而不是 Electron 默认的 `userData` crashDumps 路径，
+  因此 `PI_DESKTOP_DATA_DIR` profile 不会与其它安装共用转储。标记文件
+  `crash-dumps.json` 记录已经报告过的最新 mtime。
+- 下一次持有单实例锁的启动会为新于该标记的转储写一条 `diagnostics` 记录，
+  按 Crashpad 的 `ptype` 注解分类：任一新转储属于 browser/main 进程则为
+  `error`，已恢复的 renderer、GPU 或 utility 崩溃为 `warn`。扫描失败是一条
+  `crashDumpReportFailed` 警告，永不挡住第一扇窗口。
+- host-core 与 sidecar 崩溃仍走监督器路径以及 `host` / `agent` 日志通道。
+  什么都不上传。见 `03-runtime/07-process-model.md` §4、
+  `03-runtime/09-logging-and-observability.md` 与 `03-runtime/04-data-storage.md`。
+
