@@ -461,7 +461,7 @@ export const ActivityGroup = memo(function ActivityGroup({
   );
 }, activityGroupPropsEqual);
 
-/** Keep the transcript responsive while the model waits for its first event. */
+/** Keep the running turn visible when no more specific runtime phase is known. */
 export function WorkingIndicator({ startedAt }: { startedAt?: number } = {}) {
   const { t } = useTranslation();
   const [elapsed, setElapsed] = useState(0);
