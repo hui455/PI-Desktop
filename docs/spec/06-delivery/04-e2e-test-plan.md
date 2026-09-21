@@ -14393,3 +14393,9 @@ the latest destination. These assertions measure work counts, not device FPS.
   `fork_preserves_referenced_pasted_files_independently` and `sessions::fork_files`
   cover ownership, deletion, repeated/bounded forks, retained checkpoint paths,
   expired inputs, rollback, and symlink rejection.
+
+### E2E-SCHEDULED-paths
+
+- **Scenario:** Workspace identity.
+- **Expected:** Stored workspace bindings use the existing project canonicalization contract on both write and read. On Windows, slash direction, case, trailing separators and extended path prefixes do not hide a task from its own project's conversation. The distinction between missing legacy bindings and explicit null remains unchanged. Foreign-project tools cannot list or mutate bound tasks.
+- **Automation:** `node --experimental-strip-types scripts/e2e-scheduled-paths.mjs` uses an isolated real Host and SQLite profile. Inference is not sent to a live provider.

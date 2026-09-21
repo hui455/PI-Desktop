@@ -191,6 +191,139 @@ mod tests {
     use std::sync::Arc;
     use tokio::sync::{mpsc, Mutex};
 
+    #[cfg(windows)]
+    #[tokio::test]
+    async fn review_ui_task_is_visible_to_same_project_conversation() {
+        let dir = tempfile::tempdir().unwrap();
+        let project = tempfile::tempdir().unwrap();
+        let mut st = AppState::open(dir.path()).unwrap();
+        st.handshook = true;
+        st.db
+            .set_setting("app", &json!({"defaultPermissionMode":"auto"}))
+            .unwrap();
+        let path = st.workspace.set(project.path()).path;
+        let task = scheduled_rpc::handle(
+            &st,
+            "scheduled.create",
+            json!({
+                "title":"UI task", "prompt":"Review", "cadence":"hourly",
+                "schedule":{"hour":0,"minute":0,"weekday":0}
+            }),
+        )
+        .unwrap()["task"]
+            .clone();
+        let session =
+            sessions::create_session(&st.db, None, Some("agent".into()), None, None, Some(path))
+                .unwrap();
+        let state = Arc::new(Mutex::new(st));
+        let listed = call(&state, &session.id, "ScheduledTaskList", json!({})).await;
+        assert_eq!(listed["ok"], true, "{listed}");
+        let edited = call(
+            &state,
+            &session.id,
+            "ScheduledTaskUpdate",
+            json!({"id":task["id"],"title":"Renamed"}),
+        )
+        .await;
+        assert!(listed["content"]["tasks"].as_array().unwrap().iter().any(|item| item["id"] == task["id"]),
+            "UI-created task must be visible in the same project: task={task}, list={listed}, update={edited}");
+        assert_eq!(edited["ok"], true, "{edited}");
+    }
+
+    #[cfg(windows)]
+    #[tokio::test]
+    async fn stored_windows_aliases_remain_visible_after_restart_and_isolated() {
+        let dir = tempfile::tempdir().unwrap();
+        let project = tempfile::tempdir().unwrap();
+        let other = tempfile::tempdir().unwrap();
+        let st = AppState::open(dir.path()).unwrap();
+        let path = crate::workspace::simple_canonicalize(project.path())
+            .unwrap()
+            .to_string_lossy()
+            .into_owned();
+        let same = sessions::create_session(
+            &st.db,
+            None,
+            Some("agent".into()),
+            None,
+            None,
+            Some(path.clone()),
+        )
+        .unwrap()
+        .id;
+        let foreign = sessions::create_session(
+            &st.db,
+            None,
+            Some("agent".into()),
+            None,
+            None,
+            Some(other.path().to_string_lossy().into_owned()),
+        )
+        .unwrap()
+        .id;
+        for (i, alias) in [
+            path.clone(),
+            path.replace('\\', "/"),
+            path.to_lowercase(),
+            format!("{path}\\"),
+            format!("\\\\?\\{path}"),
+        ]
+        .iter()
+        .enumerate()
+        {
+            assert_eq!(
+                std::fs::canonicalize(alias).unwrap(),
+                std::fs::canonicalize(&path).unwrap()
+            );
+            scheduled::import_tasks(&st.db,&[json!({"id":format!("alias-{i}"),"title":"Legacy","prompt":"Review","cadence":"manual","configJson":{"workspacePath":alias}})]).unwrap();
+        }
+        drop(st);
+        let mut st = AppState::open(dir.path()).unwrap();
+        st.handshook = true;
+        st.db
+            .set_setting("app", &json!({"defaultPermissionMode":"auto"}))
+            .unwrap();
+        let state = Arc::new(Mutex::new(st));
+        let own = call(&state, &same, "ScheduledTaskList", json!({})).await;
+        assert_eq!(own["content"]["tasks"].as_array().unwrap().len(), 5);
+        assert!(
+            call(&state, &foreign, "ScheduledTaskList", json!({})).await["content"]["tasks"]
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
+        assert_eq!(
+            call(
+                &state,
+                &foreign,
+                "ScheduledTaskUpdate",
+                json!({"id":"alias-0","title":"Wrong"})
+            )
+            .await["errorCode"],
+            "NOT_FOUND"
+        );
+        assert_eq!(
+            call(
+                &state,
+                &foreign,
+                "ScheduledTaskDelete",
+                json!({"id":"alias-0"})
+            )
+            .await["errorCode"],
+            "NOT_FOUND"
+        );
+        assert_eq!(
+            call(
+                &state,
+                &same,
+                "ScheduledTaskDelete",
+                json!({"id":"alias-0"})
+            )
+            .await["ok"],
+            true
+        );
+    }
+
     async fn call(state: &Arc<Mutex<AppState>>, session: &str, name: &str, args: Value) -> Value {
         super::super::handle_request(
             state.clone(),
@@ -215,7 +348,8 @@ mod tests {
         st.db
             .set_setting("app", &json!({"defaultPermissionMode":"auto"}))
             .unwrap();
-        let path = st.workspace.set(project.path()).path;
+        let path =
+            crate::db::canonical_project_path(&st.workspace.set(project.path()).path).unwrap();
         let session = sessions::create_session(
             &st.db,
             None,

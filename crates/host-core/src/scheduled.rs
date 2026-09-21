@@ -176,7 +176,7 @@ fn task_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<ScheduledTask> {
         workspace_path: config
             .get("workspacePath")
             .and_then(Value::as_str)
-            .map(str::to_string),
+            .and_then(crate::db::canonical_project_path),
     })
 }
 

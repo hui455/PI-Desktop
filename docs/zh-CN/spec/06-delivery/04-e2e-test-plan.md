@@ -8550,3 +8550,12 @@ the latest destination. These assertions measure work counts, not device FPS.
   `fork_preserves_referenced_pasted_files_independently` 和 `sessions::fork_files`
   覆盖附件归属、删除、重复与截断分支、保留的压缩检查点引用、过期输入、失败回滚
   及符号链接拒绝。
+
+### E2E-SCHEDULED-paths
+
+- **场景**：工作区身份。
+- **预期**：保存和读取工作区绑定时统一使用现有项目路径规范化规则。Windows
+  路径的斜杠方向、大小写、末尾分隔符和扩展路径前缀差异不影响同项目会话；
+  缺失的旧版绑定与显式 null 保持不同语义，其他项目不能查询或修改绑定任务。
+- **自动化**：`node --experimental-strip-types scripts/e2e-scheduled-paths.mjs`
+  使用隔离的真实 Host 与 SQLite 配置，不向真实提供商发送推理请求。

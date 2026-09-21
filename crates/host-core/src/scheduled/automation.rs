@@ -19,7 +19,9 @@ pub fn configure(config: &mut Value, input: &Value, cadence: &str, now: i64) -> 
         if !workspace.is_null() && !workspace.is_string() {
             bail!("workspacePath must be a string or null");
         }
-        config["workspacePath"] = workspace.clone();
+        config["workspacePath"] = json!(workspace
+            .as_str()
+            .and_then(crate::db::canonical_project_path));
     }
     if input.get("schedule").is_some()
         || input.get("cadence").is_some()
