@@ -3640,21 +3640,21 @@ IPC 请求无法关闭。
 
 - **先决条件**：项目绑定的 Agent 会话使用确定性
   发出部分辅助流的提供商装置，终止一次，
-  然后下一个请求成功；第二场比赛可以终止五次；
+  然后下一个请求成功；第二场比赛可以终止 11 次；
   第三个装置在一次尝试中于标头之前返回
   `OpenAI API error (502)`，并在下一次尝试中于流中返回它；
-  第四个装置返回连续六个 502；第五个装置返回带
+  第四个装置返回连续 11 个 502；第五个装置返回带
   `Retry-After` 的 503。
 - **步骤**：
   1. 使用单端接夹具开始 Agent 转动，并观察
      部分助理回应。
   2. 等待有界重试并检查成绩单、会话状态和
      恢复后的终端诊断。
-  3. 对五端夹具重复并检查端子错误
+  3. 对 11 次终止夹具重复并检查端子错误
      message/event 及其诊断详细信息。
   4. 运行混合阶段 502 装置，并针对标头之前和流中的
      502 检查请求计数与终端诊断。
-  5. 运行持续六次 502 的装置并检查终端错误。
+  5. 运行持续 11 次 502 的装置并检查终端错误。
   6. 运行 503 `Retry-After` 装置并检查观察到的等待。
   7. 重新加载会话并验证是否只有已完成的响应或
      单终端故障助手依然耐用。
@@ -3662,12 +3662,12 @@ IPC 请求无法关闭。
   - `terminated` 被分类为 `STREAM_FAILED`，上游网关
     `502`/`503`/`504` 被分类为可重试的 `PROVIDER_ERROR`。
   - 非 429 瞬时故障共享一个有界预算：在初始尝试之后最多
-    重试四次，总共五次提供程序尝试，由请求设置和流式传输
+    重试 10 次，总共 11 次提供程序尝试，由请求设置和流式传输
     交付共享。每次重试都等待一个可中止的有界退避，从模型
     上下文中删除失败的助手，并且不产生重复的助手气泡或
     终端错误通知。
   - 流中的 502 会被重试，而不是立即显现。混合阶段装置在两个
-    阶段之间花费同一个计数器，总共进行五次尝试，而不是每个
+    阶段之间花费同一个计数器，总共进行 11 次尝试，而不是每个
     阶段各重试一次。在没有 `Retry-After` 标头时，观察到的等待
     依次为 1 秒、2 秒、4 秒，然后是 8 秒，并且在两个阶段中完全
     相同。
@@ -3676,14 +3676,14 @@ IPC 请求无法关闭。
   - 恢复的回合发出一个终端生命周期并保持相同的可见
     助理消息 ID。时序日志为每次重试记录 `outcome=retry`
     及其尝试编号，以及最终结果。
-  - 第五次终止发出一个终端 `STREAM_FAILED` 辅助错误和
+  - 第 11 次终止发出一个终端 `STREAM_FAILED` 辅助错误和
     生命周期事件；持续 502 的装置发出一个终端
-    `PROVIDER_ERROR`。两者都携带 `retryAttempt: 4`。可用的详细
+    `PROVIDER_ERROR`。两者都携带 `retryAttempt: 10`。可用的详细
     信息包括阶段、流计时和提供商状态，无需凭据或不受限制的
     提供商正文。
   - 503 装置等待服务器的 `Retry-After`，而不是客户端退避。非 429
     的服务器等待和回退等待都以 8 秒为上限。
-  - 流中的 HTTP 429 由 429 预算单独的五次重试路径覆盖；两个
+  - 流中的 HTTP 429 由 429 预算单独的 10 次重试路径覆盖；两个
     预算互不占用。
   - 身份验证、模型选择、上下文和格式错误的请求失败
     不进入任何提供程序重播路径，包括来自格式错误的 400/422
@@ -3695,6 +3695,20 @@ IPC 请求无法关闭。
 - **里程碑**：M5
 - **状态**：单位覆盖（`agent-errors.test.ts`、`provider-retry.test.ts`、
   `runtime.test.ts`、`subagent.test.ts`）；完整 provider/UI 旅程草案
+
+**Synchronized update (#699, E2E-096 / E2E-149):** Alternate one network
+failure with each of eleven successful Read responses, then fail once before
+the final answer. All twelve independent failures must recover, starting at
+retry 1 each time, with no duplicate tool execution. Complete successful
+responses replenish both budgets; headers, partial output, and phase changes
+do not. A new persistent outage after recovery still gets ten retries and
+reports `retryAttempt: 10`. Restore the provider and verify Continue succeeds.
+The same reset rule applies to rate limits and builtin subagents.
+
+The socket-failure, interrupted-stream, Responses, exhaustion, Continue, and
+eleven-tool-round desktop paths are verified by
+`scripts/e2e-provider-recovery.mjs`; real agent-loop coverage is in
+`provider-recovery-flow.test.ts`. Other scenario variants remain Draft.
 
 ## 7A。 M6 Plan 和 shell 场景
 
