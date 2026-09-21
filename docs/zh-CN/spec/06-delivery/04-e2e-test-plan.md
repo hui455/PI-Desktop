@@ -8550,3 +8550,13 @@ the latest destination. These assertions measure work counts, not device FPS.
   `fork_preserves_referenced_pasted_files_independently` 和 `sessions::fork_files`
   覆盖附件归属、删除、重复与截断分支、保留的压缩检查点引用、过期输入、失败回滚
   及符号链接拒绝。
+
+### E2E-SCHEDULED-calendar-intent
+
+- **场景**：日历配置意图。
+- **预期**：可选的 `config_json.calendarConfigured` 区分明确设置的每日／每周
+  日历时间与 Hourly 内部占位 schedule。旧版 Daily／Weekly 保留日历语义；
+  旧版 Hourly 转换时必须明确提供 schedule。已知配置可跨 Hourly 与重启保留，
+  包括午夜；仅修改元数据以及 Manual 转 Hourly 的行为不变。
+- **自动化**：`node --experimental-strip-types scripts/e2e-scheduled-calendar-intent.mjs`
+  使用隔离的真实 Host 与 SQLite 配置，不向真实提供商发送推理请求。

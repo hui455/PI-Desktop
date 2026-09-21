@@ -14393,3 +14393,9 @@ the latest destination. These assertions measure work counts, not device FPS.
   `fork_preserves_referenced_pasted_files_independently` and `sessions::fork_files`
   cover ownership, deletion, repeated/bounded forks, retained checkpoint paths,
   expired inputs, rollback, and symlink rejection.
+
+### E2E-SCHEDULED-calendar-intent
+
+- **Scenario:** Calendar intent.
+- **Expected:** The optional config_json.calendarConfigured boolean distinguishes an explicitly configured Daily/Weekly calendar from Hourly's internal schedule placeholder. Without the key, legacy Daily/Weekly schedules are treated as configured; legacy Hourly schedules retain their values but require an explicit schedule when converting to Daily/Weekly. Known calendar intent survives Hourly and restart, including midnight. Clearing or replacing the calendar with a different non-calendar placeholder clears intent. This additive extension needs no table/schema migration; older versions ignore it and cannot enforce the new conversion guard. Metadata-only edits and Manual-to-Hourly remain unchanged.
+- **Automation:** `node --experimental-strip-types scripts/e2e-scheduled-calendar-intent.mjs` uses an isolated real Host and SQLite profile. Inference is not sent to a live provider.

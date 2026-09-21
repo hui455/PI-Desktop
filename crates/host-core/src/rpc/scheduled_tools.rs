@@ -5,6 +5,10 @@ use crate::{
 };
 use serde_json::{json, Value};
 
+#[cfg(test)]
+#[path = "scheduled_calendar_tests.rs"]
+mod calendar_tests;
+
 pub fn recognizes(name: &str) -> bool {
     matches!(
         name,

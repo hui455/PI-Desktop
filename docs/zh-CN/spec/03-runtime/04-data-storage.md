@@ -1323,3 +1323,11 @@ UI投影损失
 Host-core owns updates through `providers.reorder`; missing metadata preserves
 creation order, new IDs follow saved IDs, and deleted IDs are ignored. This
 preference does not rewrite provider configuration or require a schema migration.
+
+### 定时任务日历配置来源
+
+可选的 `config_json.calendarConfigured` 布尔值独立记录明确的日历配置意图，
+不与 Hourly 间隔内部需要的 schedule 对象混用。旧版 Daily／Weekly 行只要保存了
+schedule 就推断为日历配置；旧版 Hourly 行保留字段，但转换时需要明确确认日历时间。
+已知意图在周期切换和数据库重开后仍然保留。该新增 JSON 字段不需要表或 schema
+版本迁移；旧版本会忽略它，也无法执行新的转换保护。

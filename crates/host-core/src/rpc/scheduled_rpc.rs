@@ -35,6 +35,21 @@ pub(super) fn handle_in_workspace(
         "scheduled.update" => {
             let mut params = params;
             validate_schedule_input(&params)?;
+            if matches!(
+                params.get("cadence").and_then(Value::as_str),
+                Some("daily" | "weekly")
+            ) && params.get("schedule").is_none()
+            {
+                let id = params.get("id").and_then(Value::as_str).unwrap_or("");
+                let existing = scheduled::get_task(&st.db, id)
+                    .map_err(|e| rpc_err(1000, e.to_string(), "INTERNAL"))?;
+                if existing.is_some_and(|task| task.schedule.is_some() && !task.calendar_configured)
+                {
+                    return Err(rpc_err(1002,
+                        "Confirm a calendar time and provide schedule when changing this task to Daily or Weekly",
+                        "INVALID_PARAMS"));
+                }
+            }
             if params.get("schedule").is_some() {
                 let id = params.get("id").and_then(Value::as_str).unwrap_or("");
                 let existing = scheduled::get_task(&st.db, id)

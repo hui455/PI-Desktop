@@ -7,12 +7,19 @@ use crate::db::{now_ms, Database};
 
 pub fn configure(config: &mut Value, input: &Value, cadence: &str, now: i64) -> Result<()> {
     if let Some(schedule) = input.get("schedule") {
+        let previous = config.get("schedule").cloned();
         if schedule.is_null() {
             config["schedule"] = Value::Null;
+            config["calendarConfigured"] = json!(false);
         } else {
             let schedule: Schedule = serde_json::from_value(schedule.clone())?;
             schedule.validate()?;
             config["schedule"] = serde_json::to_value(schedule)?;
+            if matches!(cadence, "daily" | "weekly") {
+                config["calendarConfigured"] = json!(true);
+            } else if previous.as_ref() != config.get("schedule") {
+                config["calendarConfigured"] = json!(false);
+            }
         }
     }
     if let Some(workspace) = input.get("workspacePath") {

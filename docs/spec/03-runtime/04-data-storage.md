@@ -1564,3 +1564,13 @@ and bounded asynchronous scanning remain deferred performance work.
 Host-core owns updates through `providers.reorder`; missing metadata preserves
 creation order, new IDs follow saved IDs, and deleted IDs are ignored. This
 preference does not rewrite provider configuration or require a schema migration.
+
+### Scheduled calendar provenance
+
+The optional `config_json.calendarConfigured` boolean records explicit calendar
+intent separately from the schedule object required by Hourly intervals.
+Legacy Daily/Weekly rows with a saved schedule infer calendar intent; legacy
+Hourly rows retain their fields but require explicit calendar confirmation
+when converted. Known intent survives cadence changes and database reopen.
+This additive JSON key needs no table or schema-version migration. Older
+versions ignore the key and cannot enforce the new conversion guard.
