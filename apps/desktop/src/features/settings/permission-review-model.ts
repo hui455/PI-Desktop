@@ -13,18 +13,18 @@ export function reviewThinkingLevels(
   modelId: string | undefined,
   catalog: readonly ModelInfo[] | undefined,
 ): ThinkingLevel[] {
-  if (!provider || !modelId) return [];
+  if (!provider || !modelId) return ["off"];
   const binding = provider.models.find((entry) => modelWireIdsEqual(entry.id, modelId));
   if (binding) {
-    return THINKING_LEVELS.filter((level) => level !== "off" && binding.thinkingLevels.includes(level));
+    return THINKING_LEVELS.filter((level) => level === "off" || binding.thinkingLevels.includes(level));
   }
-  return providerThinkingLevels(thinkingProviderForModel(provider, modelId, catalog))
-    .filter((level) => level !== "off");
+  const supported = new Set(providerThinkingLevels(thinkingProviderForModel(provider, modelId, catalog)));
+  return THINKING_LEVELS.filter((level) => level === "off" || supported.has(level));
 }
 
 export function selectedReviewThinkingLevel(
   current: ThinkingLevel | undefined,
   available: readonly ThinkingLevel[],
-): ThinkingLevel | undefined {
-  return current && available.includes(current) ? current : undefined;
+): ThinkingLevel {
+  return current && available.includes(current) ? current : "off";
 }

@@ -10,7 +10,7 @@ Ask requests approval for gated actions. Accept edits automatically permits
 ordinary workspace edits but still gates other actions. Auto skips approval
 and automatic review; it is not a safer form of Auto review.
 
-In AI settings, choose User or Auto review and either follow the conversation's
+In Permissions settings, choose User or Auto review and either follow the conversation's
 model or select a fixed reviewer model. A session override takes precedence
 over the global reviewer. Following the global default is distinct from
 pinning User explicitly. A fixed reviewer that becomes unavailable falls back
@@ -18,11 +18,14 @@ to human approval, never to a different provider.
 
 ### Edit the review policy
 
-Open Settings → AI and find the approval reviewer, review model, and review
-policy controls. The editor initially contains the built-in policy. Edit that
-text and select Save to replace it; Restore default returns to the built-in
-policy. There is one active policy, not a custom paragraph layered over an
-uneditable copy of the default. Changing the model preserves your saved policy.
+Open Settings → Permissions and find the approval reviewer, review model, and
+custom-policy input. The input starts empty and says that leaving it blank uses
+the default policy. Enter text and pause or leave the field to save it
+automatically; the saved text replaces the built-in policy. Clear the input to
+restore the built-in policy. There is one active policy, not a custom paragraph
+layered over an uneditable copy of the default. Changing the model preserves
+your saved policy. Without a fixed reviewer model, thinking shows `off`; a
+fixed model offers `off` and only its configured reasoning levels.
 
 For example, add a requirement that dependency installation always needs your
 approval. Policy changes invalidate pending old-policy approvals; they do not

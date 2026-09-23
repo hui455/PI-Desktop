@@ -139,11 +139,16 @@ changes clear grants. Revocation does not undo executed effects. See
 [permission review](../03-runtime/23-permission-auto-review.md) for reviewer
 states, takeover, model binding, fallback, and additional usage disclosure.
 
-AI settings show the complete editable reviewer policy beside model/reasoning
-configuration, with explicit Save and Restore default. A custom policy replaces
-the default, not a hidden second layer. Display its default/custom status and
-the immutable Host/response constraints. Retain unsaved edits across settings
-refreshes and failed saves; changing the selected model must not reset the policy.
+Permissions settings show a labeled custom-policy input beside model/reasoning
+configuration. The input starts blank with a placeholder saying that leaving it
+empty uses the default policy. Input is auto-saved after a pause or on blur;
+nonempty content replaces the built-in policy and clearing it restores that
+policy. No version/status, character count, Save, or Restore controls accompany
+the field. Show an inline error only for an oversized input or failed save.
+Retain unsaved edits across settings refreshes and failed saves; changing the
+selected model must not reset the policy. Without a fixed model, reasoning
+shows `off` and is disabled. A fixed model offers `off` and its configured
+reasoning levels; changing models falls back to `off` if needed.
 
 ## 9. Plan 和 Goal 合同审批卡
 

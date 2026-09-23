@@ -57,12 +57,14 @@ reasoning effort is configured separately. An unavailable pinned model never
 silently falls back to another provider. Review uses no tools, skills,
 extensions, or main-session context mutation. The built-in reviewer policy is
 versioned and cannot be replaced by repository instructions. A local user can
-edit the policy in AI settings: `autoReview.policyPrompt` replaces the default
-policy instead of being appended to a second hidden policy. An absent field
-selects the shared built-in default; Restore default removes the override.
-The editor displays the complete editable policy and its default/custom state.
-An explicit Save applies changes; background settings refreshes must not discard
-an unsaved draft, and failed saves retain the draft for retry.
+edit the policy in Permissions settings: `autoReview.policyPrompt` replaces the default
+policy instead of being appended to a second hidden policy. The custom-policy
+input is visible and blank when no override exists. It has a short placeholder
+explaining that an empty input uses the built-in policy. Nonempty text is saved
+automatically after typing pauses or the field loses focus and replaces the
+built-in policy; clearing the input automatically removes the override. There
+are no separate Save or Restore controls. Background settings refreshes must
+not discard an unsaved draft, and failed saves retain the draft with an error.
 
 The configured policy is separate from the fixed response schema, tool-free
 execution constraints, and Host admission rules. Editing it cannot disable
@@ -70,6 +72,10 @@ credential filtering, hard denials, invalid/expired request checks, or the
 requirement for a validated one-use approval. Empty or oversized policies are
 rejected at the Host boundary. The limit is 8,000 Unicode scalar values,
 counted consistently by the editor and Host. Model or reasoning changes preserve the policy.
+Without a fixed reviewer model, the reasoning selection shows `off` and is
+disabled. With a fixed model, `off` and its configured reasoning levels are
+selectable; a model change falls back to `off` when the old level is unsupported.
+`off` sends no reasoning override to the independent review request.
 Policy changes invalidate outstanding review claims and unused authorization;
 a late decision cannot execute under a policy different from the claimed one.
 The policy used by a review is bound to its Host snapshot and is identifiable

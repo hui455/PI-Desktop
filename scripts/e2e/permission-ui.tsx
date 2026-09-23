@@ -8,7 +8,7 @@ import { useAppStore } from "permission-store-under-test";
 import { api } from "permission-api-under-test";
 import { SessionPermissionGrants } from "../../apps/desktop/src/features/chat/composer/SessionPermissionGrants";
 import { PermissionReviewRows } from "../../apps/desktop/src/features/settings/PermissionReviewRows";
-import { DEFAULT_PERMISSION_REVIEW_POLICY, MAX_PERMISSION_REVIEW_POLICY_CHARS, type AppSettings } from "@pi-desktop/shared";
+import { MAX_PERMISSION_REVIEW_POLICY_CHARS, type AppSettings } from "@pi-desktop/shared";
 import "permission-tokens-under-test";
 import "permission-base-under-test";
 import "permission-styles-under-test";
@@ -152,15 +152,17 @@ globalThis.verifyReviewPolicySettingsFixture = async () => {
     settings = { ...settings, ...patch };
     render();
   };
-  const render = () => flushSync(() => root.render(<I18nextProvider i18n={i18n}>
-    <section className="settings-panel">
-      <PermissionReviewRows settings={settings} providers={[]} saveSettings={saveSettings} />
-    </section>
-  </I18nextProvider>));
+  const render = () => {
+    useAppStore.setState({ settings });
+    flushSync(() => root.render(<I18nextProvider i18n={i18n}>
+      <section className="settings-panel">
+        <PermissionReviewRows settings={settings} providers={[]} saveSettings={saveSettings} />
+      </section>
+    </I18nextProvider>));
+  };
   const editor = () => container.querySelector<HTMLTextAreaElement>("#permission-review-policy-draft")!;
-  const buttons = () => [...container.querySelectorAll<HTMLButtonElement>(".permission-review-policy-actions button")];
   const until = async (predicate: () => boolean, label: string) => {
-    const deadline = performance.now() + 3000;
+    const deadline = performance.now() + 5000;
     while (!predicate() && performance.now() < deadline) await painted();
     if (!predicate()) throw new Error(`Policy settings: ${label}`);
   };
@@ -169,12 +171,13 @@ globalThis.verifyReviewPolicySettingsFixture = async () => {
     const setValue = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!;
     setValue.call(element, value);
     element.dispatchEvent(new Event("input", { bubbles: true }));
-    await until(() => editor().value === value &&
-      Boolean(container.querySelector(".permission-review-policy-actions [role=status]")), "editor must be dirty");
+    await until(() => editor().value === value, "editor must reflect input");
   };
   render();
-  container.querySelector<HTMLElement>(".permission-review-policy summary")!.click();
-  if (editor().value !== DEFAULT_PERMISSION_REVIEW_POLICY) throw new Error("Default policy not rendered in editor");
+  if (editor().value !== "" || !editor().placeholder.includes("default policy") ||
+      container.querySelector(".permission-review-policy button, .permission-review-policy summary, .permission-review-policy .settings-row-detail")) {
+    throw new Error("Custom policy must be a visible blank input without extra controls");
+  }
 
   // A pristine editor follows a new stored policy; an unsaved editor does not.
   settings = { ...settings, autoReview: { policyPrompt: "External update" } };
@@ -187,35 +190,40 @@ globalThis.verifyReviewPolicySettingsFixture = async () => {
   if (editor().value !== "My unsaved change") throw new Error("External refresh erased dirty draft");
 
   await edit("   ");
-  if (!buttons()[0].disabled || editor().getAttribute("aria-invalid") !== "true") throw new Error("Blank policy was saveable");
+  await until(() => settings.autoReview?.policyPrompt === undefined && editor().value === "",
+    "blank input must restore the built-in policy automatically");
   await edit("x".repeat(MAX_PERMISSION_REVIEW_POLICY_CHARS + 1));
-  if (!buttons()[0].disabled || editor().getAttribute("aria-invalid") !== "true") throw new Error("Over-limit policy was saveable");
+  if (editor().getAttribute("aria-invalid") !== "true" ||
+      !container.querySelector(".permission-review-policy [role=alert]")) {
+    throw new Error("Over-limit policy must show an inline error");
+  }
 
   const custom = "Allow only the explicitly requested fixture action.";
-  await edit(custom);
   saveMode = "defer";
-  buttons()[0].click();
+  await edit(custom);
   await until(() => Boolean(finishSave), "save must reach the API boundary");
   const selectors = [...container.querySelectorAll<HTMLButtonElement>(".settings-menu-select-trigger")];
-  if (selectors.length !== 3 || selectors.some((button) => !button.disabled) || !editor().disabled) {
-    throw new Error("Reviewer, model, thinking and editor must be locked during a save");
+  if (selectors.length !== 3 || selectors.some((button) => !button.disabled) || editor().disabled) {
+    throw new Error("Other reviewer controls must wait, while typing stays available");
   }
+  await edit("A newer policy while saving.");
+  saveMode = "succeed";
   finishSave!();
-  await until(() => !editor().disabled && settings.autoReview?.policyPrompt === custom, "saved policy must settle");
+  await until(() => settings.autoReview?.policyPrompt === "A newer policy while saving.",
+    "latest input must win after the first write settles");
 
-  await edit("Retry this policy");
   saveMode = "fail";
-  buttons()[0].click();
+  await edit("Retry this policy");
   await until(() => Boolean(container.querySelector(".permission-review-policy [role=alert]")), "failed save must show error");
-  if (editor().value !== "Retry this policy" || settings.autoReview?.policyPrompt !== custom || buttons()[0].disabled) {
-    throw new Error("Failed save must keep the retryable draft and saved value");
+  if (editor().value !== "Retry this policy" || settings.autoReview?.policyPrompt !== "A newer policy while saving.") {
+    throw new Error("Failed auto-save must retain the draft and previous saved value");
   }
   saveMode = "succeed";
-  buttons()[0].click();
-  await until(() => settings.autoReview?.policyPrompt === "Retry this policy" && !editor().disabled, "retry must save policy");
-  buttons()[1].click();
-  await until(() => settings.autoReview?.policyPrompt === undefined && editor().value === DEFAULT_PERMISSION_REVIEW_POLICY && !editor().disabled,
-    "restore default must clear the stored override");
+  editor().dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+  await until(() => settings.autoReview?.policyPrompt === "Retry this policy", "blur must retry auto-save");
+  await edit("");
+  await until(() => settings.autoReview?.policyPrompt === undefined && editor().value === "",
+    "clearing input must restore default without a button");
   return { locale: i18n.language,
-    checks: ["pristine refresh", "dirty refresh", "blank and length validation", "save lock", "failure retry", "restore default"] };
+    checks: ["minimal blank editor", "pristine refresh", "dirty refresh", "blank restores default", "length validation", "queued latest input", "failure retry", "automatic restore"] };
 };

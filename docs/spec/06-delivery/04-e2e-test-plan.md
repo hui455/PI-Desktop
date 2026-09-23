@@ -12,12 +12,17 @@
 
 - **Preconditions:** Isolated desktop profile with a localhost model; default
   reviewer policy and no real credentials.
-- **Path:** Open Settings → AI, select a reviewer model, edit the prefilled
-  policy and Save. Leave and reopen settings; change the reviewer model and
-  verify the saved policy remains. Restore default and verify the default text.
-- **Expected:** One active editable policy replaces the built-in default rather
-  than being appended. Invalid/empty/oversized input cannot be saved; a failed
-  save keeps the draft. Host persists valid local settings without portable
+- **Path:** Open Settings → Permissions and verify the visible custom-policy
+  input is blank with a default-policy placeholder and review thinking shows
+  `off` without a fixed model. Select a reviewer model through the searchable
+  menu, verify that `off` and only its configured thinking levels appear, then
+  enter a custom policy. Wait for auto-save, leave and reopen settings, change
+  the reviewer model, and verify the saved policy remains. Clear the input and
+  verify the default policy is restored automatically.
+- **Expected:** Nonempty auto-saved content replaces the built-in policy rather
+  than being appended. Empty content restores the built-in policy; oversized
+  input cannot be saved. A failed auto-save keeps the draft and shows an error.
+  Host persists valid local settings without portable
   synchronization. Policy changes reject late old-policy approvals and permits.
 - **Coverage:** Settings interaction plus Host/runtime contract tests must show
   the configured text reaches the actual review prompt, with unchanged
@@ -3494,7 +3499,11 @@ identify the platform validation still needed.
   a URL preview, and a completed Bash row. 3) Verify the header is a tablist:
   open enough tabs to overflow it, confirm only the strip scrolls and the `+`
   trigger stays visible, activate the scrolled-away tab, and close tabs with
-  hover/focus `×` and middle-click. 4) Click `+` twice and verify each click
+  hover/focus `×` and middle-click. Drag a tab across another tab and verify
+  the before/after drop indicator, resulting order, and unchanged active tab;
+  hold a drag at each strip edge until hidden tabs scroll into view, then verify
+  the indicator follows the newly visible targets. Repeat with
+  `Alt+ArrowLeft`/`Alt+ArrowRight`. 4) Click `+` twice and verify each click
   creates and activates a separate New launcher tab. Confirm the launcher body
   contains Review plus each in-scope plugin view exactly once as clickable rows;
   there is no work-panel dropdown or popup. Click Browser from one New tab and
@@ -3542,9 +3551,13 @@ identify the platform validation still needed.
   fixed `+`; labels stay readable instead of shrinking into one cluster, the
   strip alone scrolls, active tabs scroll into view, and close selects the
   right neighbor then left. New launcher tabs expose Review and in-scope plugin
-  views as body buttons, with no popup to overlap or shift the panel. Clicking a
-  launcher row replaces that New tab with the destination or activates its
-  existing singleton. Closing the last tab leaves the panel open on New. Collapse
+  views as body buttons, with no popup to overlap or shift the panel. Dragging a
+  tab shows a before/after insertion indicator, edge-holding scrolls the strip
+  toward hidden tabs, and reorders only the tab array; the active resource stays
+  active. `Alt+ArrowLeft`/`Alt+ArrowRight` provides the same reorder path from
+  the focused tab. Clicking a launcher row replaces
+  that New tab with the destination or activates its existing singleton.
+  Closing the last tab leaves the panel open on New. Collapse
   retains runtime tabs but hides the panel until another artifact reopens it.
   Width follows the shared three-column budget with no fixed pixel cap and
   previews its current/minimum/maximum values through the panel separator. The

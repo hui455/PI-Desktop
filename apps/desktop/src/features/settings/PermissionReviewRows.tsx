@@ -1,17 +1,17 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  DEFAULT_PERMISSION_REVIEW_POLICY,
+  imageGenerationBindings,
   MAX_PERMISSION_REVIEW_POLICY_CHARS,
-  PERMISSION_REVIEW_POLICY_VERSION,
-  THINKING_LEVELS,
   type AppSettings,
   type ProviderPublic,
 } from "@pi-desktop/shared";
 import { useTranslation } from "react-i18next";
-import { Button } from "../../components/ui";
 import { SettingsMenuSelect } from "../../components/settings/SettingsMenuSelect";
+import { defaultModelOptions } from "../../components/settings/default-model";
+import { useAppStore } from "../../stores/app-store";
 import { SettingsRow } from "./primitives";
 import { syncPermissionPolicyDraft } from "./permission-policy-draft";
+import { reviewThinkingLevels, selectedReviewThinkingLevel } from "./permission-review-model";
 
 export function PermissionReviewRows({ settings, providers, saveSettings }: {
   settings: AppSettings;
@@ -19,63 +19,122 @@ export function PermissionReviewRows({ settings, providers, saveSettings }: {
   saveSettings: (patch: Partial<AppSettings>) => Promise<void>;
 }) {
   const { t } = useTranslation();
+  const providerModels = useAppStore((state) => state.providerModels);
   const binding = settings.autoReview;
-  const savedPolicy = binding?.policyPrompt ?? DEFAULT_PERMISSION_REVIEW_POLICY;
+  const savedPolicy = binding?.policyPrompt ?? "";
   const [policyDraft, setPolicyDraft] = useState(savedPolicy);
+  const policyDraftRef = useRef(savedPolicy);
   const previousSavedPolicy = useRef(savedPolicy);
+  const saveSettingsRef = useRef(saveSettings);
+  saveSettingsRef.current = saveSettings;
+  const mountedRef = useRef(true);
+  const writeQueue = useRef(Promise.resolve());
   const [savingPolicy, setSavingPolicy] = useState(false);
   const [savingBinding, setSavingBinding] = useState(false);
-  const writeInFlight = useRef(false);
   const [policySaveFailed, setPolicySaveFailed] = useState(false);
   const [bindingSaveFailed, setBindingSaveFailed] = useState(false);
   const busy = savingPolicy || savingBinding;
-  const policyDirty = policyDraft !== savedPolicy;
   const policyLength = [...policyDraft].length;
-  const policyInvalid = !policyDraft.trim() || policyLength > MAX_PERMISSION_REVIEW_POLICY_CHARS;
+  const policyInvalid = policyLength > MAX_PERMISSION_REVIEW_POLICY_CHARS;
+
+  const enqueueWrite = useCallback((write: () => Promise<void>) => {
+    writeQueue.current = writeQueue.current.then(write).catch(() => {
+      if (mountedRef.current) setBindingSaveFailed(true);
+    });
+  }, []);
+
+  const queuePolicySave = useCallback((text: string) => {
+    if ([...text].length > MAX_PERMISSION_REVIEW_POLICY_CHARS) return;
+    const policyPrompt = text.trim() ? text : undefined;
+    enqueueWrite(async () => {
+      if (policyDraftRef.current !== text) return;
+      const currentBinding = useAppStore.getState().settings?.autoReview;
+      if ((currentBinding?.policyPrompt ?? "") === (policyPrompt ?? "")) {
+        if (!policyPrompt && mountedRef.current) {
+          policyDraftRef.current = "";
+          setPolicyDraft("");
+        }
+        return;
+      }
+      if (mountedRef.current) setSavingPolicy(true);
+      try {
+        await saveSettingsRef.current({ autoReview: { ...currentBinding, policyPrompt } });
+        if (mountedRef.current) {
+          setPolicySaveFailed(false);
+          if (!policyPrompt && policyDraftRef.current === text) {
+            policyDraftRef.current = "";
+            setPolicyDraft("");
+          }
+        }
+      } catch {
+        if (mountedRef.current && policyDraftRef.current === text) setPolicySaveFailed(true);
+      } finally {
+        if (mountedRef.current) setSavingPolicy(false);
+      }
+    });
+  }, [enqueueWrite]);
+
   // Provider refreshes and remote settings updates must not erase unsaved edits.
   useEffect(() => {
     const previous = previousSavedPolicy.current;
-    setPolicyDraft((current) => syncPermissionPolicyDraft(current, previous, savedPolicy));
+    setPolicyDraft((current) => {
+      const next = syncPermissionPolicyDraft(current, previous, savedPolicy);
+      policyDraftRef.current = next;
+      return next;
+    });
     previousSavedPolicy.current = savedPolicy;
   }, [savedPolicy]);
 
-  const persistPolicy = async (policyPrompt: string | undefined) => {
-    if (writeInFlight.current) return;
-    writeInFlight.current = true;
-    setSavingPolicy(true);
-    setPolicySaveFailed(false);
-    try {
-      await saveSettings({ autoReview: { ...binding, policyPrompt } });
-      setPolicyDraft(policyPrompt ?? DEFAULT_PERMISSION_REVIEW_POLICY);
-    } catch {
-      setPolicySaveFailed(true);
-    } finally {
-      writeInFlight.current = false;
-      setSavingPolicy(false);
-    }
-  };
-  const persistReviewSetting = async (patch: Partial<AppSettings>) => {
-    if (writeInFlight.current) return;
-    writeInFlight.current = true;
+  useEffect(() => {
+    if (policyDraft === savedPolicy || policyInvalid) return;
+    const timer = window.setTimeout(() => queuePolicySave(policyDraft), 650);
+    return () => window.clearTimeout(timer);
+  }, [policyDraft, savedPolicy, policyInvalid, queuePolicySave]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (policyDraftRef.current !== previousSavedPolicy.current) {
+        queuePolicySave(policyDraftRef.current);
+      }
+    };
+  }, [queuePolicySave]);
+
+  const persistReviewSetting = (patch: Partial<AppSettings>) => {
     setSavingBinding(true);
     setBindingSaveFailed(false);
-    try {
-      await saveSettings(patch);
-    } catch {
-      setBindingSaveFailed(true);
-    } finally {
-      writeInFlight.current = false;
-      setSavingBinding(false);
-    }
+    enqueueWrite(async () => {
+      try {
+        const currentBinding = useAppStore.getState().settings?.autoReview;
+        await saveSettingsRef.current(patch.autoReview
+          ? { ...patch, autoReview: { ...currentBinding, ...patch.autoReview } }
+          : patch);
+      } catch {
+        if (mountedRef.current) setBindingSaveFailed(true);
+      } finally {
+        if (mountedRef.current) setSavingBinding(false);
+      }
+    });
   };
-  const models = providers.filter((provider) => provider.enabled && (
+  const availableProviders = providers.filter((provider) => provider.enabled && (
     provider.hasSecret || provider.hasOauth || provider.authKind === "none"
-  ))
-    .flatMap((provider) => provider.models.map((model) => ({
-      id: JSON.stringify([provider.id, model.id]), label: `${provider.name} / ${model.id}`,
-    })));
+  ));
+  const images = imageGenerationBindings(settings.imageGenerationModels, settings.imageGeneration);
+  const models = defaultModelOptions(availableProviders, images).map(({ provider, modelId }) => ({
+    id: JSON.stringify([provider.id, modelId]),
+    label: `${provider.name} / ${modelId}`,
+    provider,
+    modelId,
+  }));
   const selected = binding?.providerId && binding.modelId
     ? JSON.stringify([binding.providerId, binding.modelId]) : "follow";
+  const selectedModel = models.find((model) => model.id === selected);
+  const thinkingLevels = selectedModel
+    ? reviewThinkingLevels(selectedModel.provider, selectedModel.modelId,
+        providerModels[selectedModel.provider.id])
+    : (["off"] as const);
+  const selectedThinking = selectedReviewThinkingLevel(binding?.thinkingLevel, thinkingLevels);
 
   return (
     <>
@@ -97,6 +156,8 @@ export function PermissionReviewRows({ settings, providers, saveSettings }: {
               label={t("settings.reviewModel")}
               value={selected}
               busy={busy}
+              searchPlaceholder={t("settings.defaultModelSearch")}
+              emptyLabel={t("settings.noModelMatches")}
               options={[{ id: "follow", label: t("settings.reviewFollowSession") }, ...models,
                 ...(selected !== "follow" && !models.some((model) => model.id === selected)
                   ? [{ id: selected, label: t("settings.reviewModelUnavailable"), disabled: true }]
@@ -105,12 +166,13 @@ export function PermissionReviewRows({ settings, providers, saveSettings }: {
               onChange={(value) => {
                 const model = models.find((candidate) => candidate.id === value);
                 if (value !== "follow" && !model) return;
-                const [providerId, modelId] = value === "follow" ? [] : JSON.parse(model!.id) as string[];
+                const levels = model
+                  ? reviewThinkingLevels(model.provider, model.modelId, providerModels[model.provider.id])
+                  : (["off"] as const);
                 void persistReviewSetting({ autoReview: {
-                  ...binding,
-                  providerId,
-                  modelId,
-                  thinkingLevel: binding?.thinkingLevel ?? "off",
+                  providerId: model?.provider.id,
+                  modelId: model?.modelId,
+                  thinkingLevel: selectedReviewThinkingLevel(binding?.thinkingLevel, levels),
                 } });
               }}
             />
@@ -118,49 +180,41 @@ export function PermissionReviewRows({ settings, providers, saveSettings }: {
           <SettingsRow title={t("settings.reviewThinking")} description={t("settings.reviewThinkingDesc")}>
             <SettingsMenuSelect
               label={t("settings.reviewThinking")}
-              value={binding?.thinkingLevel ?? "off"}
+              value={selectedThinking}
+              disabled={!selectedModel || thinkingLevels.length === 1}
               busy={busy}
-              options={THINKING_LEVELS.map((level) => ({ id: level, label: level }))}
+              options={thinkingLevels.map((level) => ({ id: level, label: level }))}
               onChange={(value) => {
-                const thinkingLevel = THINKING_LEVELS.find((level) => level === value);
-                if (thinkingLevel) void persistReviewSetting({ autoReview: { ...binding, thinkingLevel } });
+                if (!thinkingLevels.some((level) => level === value)) return;
+                void persistReviewSetting({ autoReview: {
+                  thinkingLevel: thinkingLevels.find((level) => level === value),
+                } });
               }}
             />
           </SettingsRow>
           <p className="settings-description">{t("settings.reviewCostCaution")}</p>
           {bindingSaveFailed ? <p role="alert">{t("settings.reviewSettingsSaveFailed")}</p> : null}
-          <details className="settings-row permission-review-policy" style={{ display: "block" }}>
-            <summary>{t("settings.reviewPolicyTitle")} · {t("settings.reviewPolicyVersion", { version: PERMISSION_REVIEW_POLICY_VERSION })} · {t(binding?.policyPrompt === undefined ? "settings.reviewPolicyDefault" : "settings.reviewPolicyCustom")}</summary>
-            <p className="settings-description">{t("settings.reviewPolicyDesc")}</p>
-            <label htmlFor="permission-review-policy-draft">{t("settings.reviewPolicyEditor")}</label>
+          <div className="settings-row permission-review-policy">
+            <label className="settings-row-title" htmlFor="permission-review-policy-draft">{t("settings.reviewPolicyTitle")}</label>
             <textarea
               id="permission-review-policy-draft"
               className="field-textarea"
-              rows={15}
+              rows={7}
               value={policyDraft}
-              disabled={busy}
-              onChange={(event) => { setPolicyDraft(event.target.value); setPolicySaveFailed(false); }}
+              placeholder={t("settings.reviewPolicyDesc")}
+              onChange={(event) => {
+                policyDraftRef.current = event.target.value;
+                setPolicyDraft(event.target.value);
+                setPolicySaveFailed(false);
+              }}
+              onBlur={() => queuePolicySave(policyDraftRef.current)}
               aria-invalid={policyInvalid}
-              aria-describedby="permission-review-policy-help"
+              aria-describedby={policyInvalid ? "permission-review-policy-invalid"
+                : policySaveFailed ? "permission-review-policy-save-error" : undefined}
             />
-            <p id="permission-review-policy-help" className="settings-description">
-              {t("settings.reviewPolicyLength", { count: policyLength, max: MAX_PERMISSION_REVIEW_POLICY_CHARS })}
-              {policyInvalid ? ` · ${t("settings.reviewPolicyInvalid")}` : ""}
-            </p>
-            <div className="permission-review-policy-actions" style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "var(--space-3)" }}>
-              <Button type="button" disabled={busy || !policyDirty || policyInvalid}
-                onClick={() => void persistPolicy(policyDraft === DEFAULT_PERMISSION_REVIEW_POLICY ? undefined : policyDraft)}>
-                {t("settings.reviewPolicySave")}
-              </Button>
-              <Button variant="secondary" type="button" disabled={busy || (binding?.policyPrompt === undefined && !policyDirty)}
-                onClick={() => void persistPolicy(undefined)}>
-                {t("settings.reviewPolicyRestore")}
-              </Button>
-              {policyDirty ? <span role="status">{t("settings.reviewPolicyUnsaved")}</span> : null}
-            </div>
-            {policySaveFailed ? <p role="alert">{t("settings.reviewPolicySaveFailed")}</p> : null}
-            <p className="settings-description">{t("settings.reviewPolicyBoundary")}</p>
-          </details>
+            {policyInvalid ? <p id="permission-review-policy-invalid" role="alert">{t("settings.reviewPolicyInvalid")}</p> : null}
+            {policySaveFailed ? <p id="permission-review-policy-save-error" role="alert">{t("settings.reviewPolicySaveFailed")}</p> : null}
+          </div>
       </>
     </>
   );

@@ -11,7 +11,6 @@ import { join } from "node:path";
 import { Host, resolveHostBinary } from "./e2e/host.mjs";
 import { assertDesktopBuild, resolveElectronBinary } from "./e2e/boot.mjs";
 import { waitFor } from "./e2e/wait.mjs";
-import { DEFAULT_PERMISSION_REVIEW_POLICY } from "../packages/shared/dist/permission-review-policy.js";
 
 assert.equal(process.platform, "win32", "This full-app fixture isolates Windows USERPROFILE; use the portable host/card suites on other platforms.");
 assertDesktopBuild();
@@ -95,7 +94,10 @@ try {
     name: "Local permission fixture", vendorKey: "custom", type: "openai_compatible",
     protocol: "openai_compatible", apiStyle: "chat_completions", authKind: "none",
     baseUrl: `http://127.0.0.1:${model.address().port}/v1`, defaultModelId: "permission-fixture",
-    ...(settingsOnly ? { models: [{ id: "permission-fixture" }] } : {}),
+    ...(settingsOnly ? { models: [
+      { id: "permission-fixture", thinkingLevels: ["off", "low", "high"] },
+      { id: "plain-fixture", thinkingLevels: ["off"] },
+    ] } : {}),
   });
   await seed.call("settings.set", { language: settingsOnly ? settingsLocale : "en", defaultProviderId: provider.id,
     defaultModelId: "permission-fixture", defaultMode: "agent", defaultPermissionMode: "ask",
@@ -180,15 +182,21 @@ try {
       assert.equal(result.ok, true, "settings.get must succeed");
       return result.data;
     };
-    const openAiSettings = async () => {
+    const openPermissionSettings = async () => {
       await evaluate('document.querySelector("[data-nav=settings]").click()');
-      await waitFor(() => evaluate("[...document.querySelectorAll('.settings-nav-item')].some((item) => item.textContent.trim() === 'AI')"), 10000, "Settings navigation");
+      const label = settingsLocale === "zh-CN" ? "权限" : "Permissions";
+      await waitFor(() => evaluate(`[...document.querySelectorAll('.settings-nav-item')].some((item) => item.textContent.trim() === ${JSON.stringify(label)})`), 10000, "Settings navigation");
       await evaluate("[...document.querySelectorAll('.settings-nav-item')].find((item) => item.textContent.trim() === 'AI').click()");
-      await waitFor(() => evaluate("!!document.getElementById('permission-review-policy-draft')"), 10000, "AI permissions settings");
+      assert.equal(await evaluate("!!document.getElementById('permission-review-policy-draft')"), false,
+        "review policy must not remain under AI");
+      await evaluate(`[...document.querySelectorAll('.settings-nav-item')].find((item) => item.textContent.trim() === ${JSON.stringify(label)}).click()`);
+      await waitFor(() => evaluate("!!document.getElementById('permission-review-policy-draft')"), 10000, "Permissions settings");
     };
-    await openAiSettings();
-    assert.equal(await evaluate("document.getElementById('permission-review-policy-draft').value"), DEFAULT_PERMISSION_REVIEW_POLICY);
-    await evaluate("document.querySelector('.permission-review-policy summary').click()");
+    await openPermissionSettings();
+    assert.equal(await evaluate("document.getElementById('permission-review-policy-draft').value"), "");
+    assert.equal(await evaluate("!!document.querySelector('.permission-review-policy button, .permission-review-policy summary, .permission-review-policy .settings-row-detail')"), false);
+    assert.equal(await evaluate("document.getElementById('permission-review-policy-draft').placeholder"),
+      settingsLocale === "zh-CN" ? "不填写使用默认策略" : "Leave empty to use the default policy");
     await evaluate("document.getElementById('permission-review-policy-draft').scrollIntoView({ block: 'center' })");
     await screenshot(`${settingsLocale}-default-policy.png`);
 
@@ -198,60 +206,97 @@ try {
       const draft = document.getElementById('permission-review-policy-draft');
       return !!trigger && !trigger.disabled && !!draft && !draft.disabled && trigger.textContent.includes(${JSON.stringify(label)});
     })()`), 10000, `review model control settled: ${label}`);
-    const policyControlReady = (value, label) => waitFor(() => evaluate(`(() => {
+    const policyControlReady = (value) => waitFor(() => evaluate(`(() => {
       const draft = document.getElementById('permission-review-policy-draft');
-      const summary = document.querySelector('.permission-review-policy summary');
-      return !!draft && !draft.disabled && draft.value === ${JSON.stringify(value)} &&
-        summary?.textContent.includes(${JSON.stringify(label)});
-    })()`), 10000, `review policy control settled: ${label}`);
+      return !!draft && draft.value === ${JSON.stringify(value)} &&
+        !document.querySelector('.permission-review-policy [role=alert]');
+    })()`), 10000, "review policy control settled");
     const followLabel = settingsLocale === "zh-CN" ? "跟随当前对话" : "Follow current chat";
-    const customLabel = settingsLocale === "zh-CN" ? "已自定义" : "Customized";
-    const defaultLabel = settingsLocale === "zh-CN" ? "默认" : "Default";
     await modelControlReady(followLabel);
+    const thinkingLabel = settingsLocale === "zh-CN" ? "审核思考等级" : "Review thinking";
+    const thinkingTrigger = `document.querySelector('button[aria-label=${JSON.stringify(thinkingLabel)}]')`;
+    assert.equal(await evaluate(`${thinkingTrigger}.disabled && ${thinkingTrigger}.textContent.includes('off')`), true);
+    assert.equal((await savedSettings()).autoReview?.thinkingLevel, undefined);
     await evaluate(`${trigger}.scrollIntoView({ block: 'center' })`);
     await evaluate(`${trigger}.click()`);
-    await waitFor(() => evaluate("[...document.querySelectorAll('[role=option]')].some((item) => item.textContent.includes('Local permission fixture / permission-fixture'))"), 5000, "fixture reviewer model option");
+    await waitFor(() => evaluate("(() => { const input = document.querySelector('.settings-menu-select-search input'); return !!input && input.closest('.settings-menu-select-menu')?.classList.contains('is-open') && document.activeElement === input; })()"), 5000,
+      "focused reviewer model search input");
+    await send("Input.insertText", { text: "permission-fixture" });
+    await waitFor(() => evaluate("[...document.querySelectorAll('.settings-menu-select-menu [role=option]')].filter((item) => item.textContent.includes('Local permission fixture /')).length === 1"),
+      5000, "filtered reviewer model option");
     await screenshot(`${settingsLocale}-model-menu.png`);
     await evaluate("[...document.querySelectorAll('[role=option]')].find((item) => item.textContent.includes('Local permission fixture / permission-fixture')).click()");
     await waitFor(async () => (await savedSettings()).autoReview?.modelId === "permission-fixture", 10000, "fixed reviewer model persisted");
     await modelControlReady("Local permission fixture / permission-fixture");
     assert.equal((await savedSettings()).autoReview?.providerId, provider.id);
+    assert.equal((await savedSettings()).autoReview?.thinkingLevel, "off");
+    assert.equal(await evaluate(`!${thinkingTrigger}.disabled && ${thinkingTrigger}.textContent.includes('off')`), true);
+    await evaluate(`${thinkingTrigger}.click()`);
+    await waitFor(() => evaluate("document.querySelectorAll('.settings-menu-select-menu [role=option]').length === 3"), 5000, "model-specific thinking levels");
+    assert.deepEqual(await evaluate("[...document.querySelectorAll('.settings-menu-select-menu [role=option]')].map((item) => item.textContent.trim())"),
+      ["off", "low", "high"]);
+    await screenshot(`${settingsLocale}-thinking-menu.png`);
+    await evaluate("[...document.querySelectorAll('.settings-menu-select-menu [role=option]')].find((item) => item.textContent.trim() === 'high').click()");
+    await waitFor(async () => (await savedSettings()).autoReview?.thinkingLevel === "high", 5000, "review thinking level persisted");
+    await waitFor(() => evaluate("!document.querySelector('.settings-menu-select-menu')"), 5000,
+      "thinking menu closes before policy editing");
+    await evaluate(`${trigger}.click()`);
+    await waitFor(() => evaluate("[...document.querySelectorAll('[role=option]')].some((item) => item.textContent.includes('Local permission fixture / plain-fixture'))"), 5000,
+      "non-reasoning reviewer model option");
+    await evaluate("[...document.querySelectorAll('[role=option]')].find((item) => item.textContent.includes('Local permission fixture / plain-fixture')).click()");
+    await waitFor(async () => (await savedSettings()).autoReview?.modelId === "plain-fixture", 5000,
+      "non-reasoning reviewer model persisted");
+    assert.equal((await savedSettings()).autoReview?.thinkingLevel, "off");
+    assert.equal(await evaluate(`${thinkingTrigger}.disabled && ${thinkingTrigger}.textContent.includes('off')`), true);
+    await evaluate(`${trigger}.click()`);
+    await waitFor(() => evaluate("[...document.querySelectorAll('[role=option]')].some((item) => item.textContent.includes('Local permission fixture / permission-fixture'))"), 5000,
+      "reasoning reviewer model option restored");
+    await evaluate("[...document.querySelectorAll('[role=option]')].find((item) => item.textContent.includes('Local permission fixture / permission-fixture')).click()");
+    await waitFor(async () => (await savedSettings()).autoReview?.modelId === "permission-fixture", 5000,
+      "reasoning reviewer model restored");
+    assert.equal((await savedSettings()).autoReview?.thinkingLevel, "off");
 
     const policy = "Review only the current, explicitly authorized local fixture action. Ask the user when the scope is unclear.";
-    await evaluate("document.getElementById('permission-review-policy-draft').focus(); document.getElementById('permission-review-policy-draft').select()");
+    await evaluate("document.getElementById('permission-review-policy-draft').scrollIntoView({ block: 'center' }); document.getElementById('permission-review-policy-draft').focus()");
+    await waitFor(() => evaluate("document.activeElement?.id === 'permission-review-policy-draft'"), 5000,
+      "policy editor receives keyboard focus");
     await send("Input.insertText", { text: policy });
-    await waitFor(() => evaluate("!document.querySelector('.permission-review-policy-actions button').disabled"), 5000, "edited policy can be saved");
-    // A settings refresh from changing the model must not replace the dirty draft.
+    await waitFor(async () => (await savedSettings()).autoReview?.policyPrompt === policy, 10000,
+      "custom review policy auto-saved");
+    await policyControlReady(policy);
+    await evaluate("document.getElementById('permission-review-policy-draft').scrollIntoView({ block: 'center' })");
+    await screenshot(`${settingsLocale}-custom-policy.png`);
+    // Model changes must keep the policy already saved by the editor.
     await evaluate(`${trigger}.click()`);
     await waitFor(() => evaluate("[...document.querySelectorAll('[role=option]')].some((item) => item.textContent.includes('Follow') || item.textContent.includes('跟随'))"), 5000, "follow session option");
     await evaluate("[...document.querySelectorAll('[role=option]')].find((item) => item.textContent.includes('Follow') || item.textContent.includes('跟随')).click()");
     await waitFor(async () => !(await savedSettings()).autoReview?.providerId, 10000, "model refresh while editing");
     await modelControlReady(followLabel);
-    assert.equal(await evaluate("document.getElementById('permission-review-policy-draft').value"), policy,
-      "changing model while editing must retain the unsaved policy");
+    assert.equal((await savedSettings()).autoReview?.thinkingLevel, "off");
+    assert.equal(await evaluate(`${thinkingTrigger}.disabled && ${thinkingTrigger}.textContent.includes('off')`), true);
+    assert.equal((await savedSettings()).autoReview?.policyPrompt, policy,
+      "following the session model must retain the custom policy");
     await evaluate(`${trigger}.click()`);
     await waitFor(() => evaluate("[...document.querySelectorAll('[role=option]')].some((item) => item.textContent.includes('Local permission fixture / permission-fixture'))"), 5000, "fixture model option again");
     await evaluate("[...document.querySelectorAll('[role=option]')].find((item) => item.textContent.includes('Local permission fixture / permission-fixture')).click()");
     await waitFor(async () => (await savedSettings()).autoReview?.modelId === "permission-fixture", 10000, "fixture model restored");
     await modelControlReady("Local permission fixture / permission-fixture");
-    assert.equal(await evaluate("document.getElementById('permission-review-policy-draft').value"), policy,
-      "returning to the fixed model must retain the unsaved policy");
-    await evaluate("document.querySelector('.permission-review-policy-actions button').click()");
-    await waitFor(async () => (await savedSettings()).autoReview?.policyPrompt === policy, 10000, "custom review policy persisted");
-    await policyControlReady(policy, customLabel);
-    await evaluate("document.getElementById('permission-review-policy-draft').scrollIntoView({ block: 'center' })");
-    await screenshot(`${settingsLocale}-custom-policy.png`);
+    assert.equal((await savedSettings()).autoReview?.thinkingLevel, "off");
+    assert.equal((await savedSettings()).autoReview?.policyPrompt, policy,
+      "returning to the fixed model must retain the custom policy");
     await evaluate("document.querySelector('[data-nav=back-to-app]').click()");
     await waitFor(() => evaluate("!!document.querySelector('[data-nav=settings]')"), 5000, "return to desktop");
-    await openAiSettings();
-    await evaluate("document.querySelector('.permission-review-policy summary').click()");
+    await openPermissionSettings();
     assert.equal(await evaluate("document.getElementById('permission-review-policy-draft').value"), policy,
       "saved policy must reload after leaving settings");
     assert.equal((await savedSettings()).autoReview?.modelId, "permission-fixture", "policy save must retain fixed model");
-    await evaluate("document.querySelectorAll('.permission-review-policy-actions button')[1].click()");
-    await waitFor(async () => (await savedSettings()).autoReview?.policyPrompt === undefined, 10000, "default policy restored");
-    await policyControlReady(DEFAULT_PERMISSION_REVIEW_POLICY, defaultLabel);
-    assert.equal(await evaluate("document.getElementById('permission-review-policy-draft').value"), DEFAULT_PERMISSION_REVIEW_POLICY);
+    await evaluate("document.getElementById('permission-review-policy-draft').focus(); document.getElementById('permission-review-policy-draft').select()");
+    await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Backspace", code: "Backspace", windowsVirtualKeyCode: 8 });
+    await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Backspace", code: "Backspace", windowsVirtualKeyCode: 8 });
+    await waitFor(async () => (await savedSettings()).autoReview?.policyPrompt === undefined, 10000,
+      "clearing input restores the built-in policy automatically");
+    await policyControlReady("");
+    assert.equal(await evaluate("document.getElementById('permission-review-policy-draft').value"), "");
     await evaluate("document.getElementById('permission-review-policy-draft').scrollIntoView({ block: 'center' })");
     await screenshot(`${settingsLocale}-restored-policy.png`);
     await evaluate(`${trigger}.scrollIntoView({ block: 'center' })`);
@@ -262,7 +307,7 @@ try {
     await modelControlReady(followLabel);
     assert.equal((await savedSettings()).autoReview?.policyPrompt, undefined, "model selection must preserve restored default");
     console.log(JSON.stringify({ ok: true, settingsOnly, locale: settingsLocale,
-      actions: ["open AI settings", "select fixture model", "save policy", "reopen settings", "restore default", "follow session"],
+      actions: ["open Permissions settings", "search and select fixture model", "select supported thinking", "clear unsupported thinking", "auto-save policy", "reopen settings", "clear policy to restore default", "follow session"],
       environment: "Windows full desktop, isolated Host/profile/native-Pi home, local fixture provider" }));
   } else {
   await evaluate(`globalThis.permissionFixtureEvents = [];

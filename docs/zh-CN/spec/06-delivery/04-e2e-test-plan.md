@@ -4,12 +4,17 @@
 
 - **Preconditions:** Isolated desktop profile with a localhost model; default
   reviewer policy and no real credentials.
-- **Path:** Open Settings → AI, select a reviewer model, edit the prefilled
-  policy and Save. Leave and reopen settings; change the reviewer model and
-  verify the saved policy remains. Restore default and verify the default text.
-- **Expected:** One active editable policy replaces the built-in default rather
-  than being appended. Invalid/empty/oversized input cannot be saved; a failed
-  save keeps the draft. Host persists valid local settings without portable
+- **Path:** Open Settings → Permissions and verify the visible custom-policy
+  input is blank with a default-policy placeholder and review thinking shows
+  `off` without a fixed model. Select a reviewer model through the searchable
+  menu, verify that `off` and only its configured thinking levels appear, then
+  enter a custom policy. Wait for auto-save, leave and reopen settings, change
+  the reviewer model, and verify the saved policy remains. Clear the input and
+  verify the default policy is restored automatically.
+- **Expected:** Nonempty auto-saved content replaces the built-in policy rather
+  than being appended. Empty content restores the built-in policy; oversized
+  input cannot be saved. A failed auto-save keeps the draft and shows an error.
+  Host persists valid local settings without portable
   synchronization. Policy changes reject late old-policy approvals and permits.
 - **Coverage:** Settings interaction plus Host/runtime contract tests must show
   the configured text reaches the actual review prompt, with unchanged
@@ -2063,7 +2068,9 @@ hover/focus 不带移位标签，项目标题 hover/focus 路径显示
   并且没有创建任何选项卡。 2）打开两个不同的文件工件，再次打开相同的第一个文件，
   URL 预览，并准备一条已完成的 Bash 行。 3）验证 header 是可横向滚动的
   tablist：打开足够多的标签，确认只有标签条滚动且 `+` 始终可见，并使用
-  hover/focus `×` 与中键关闭。 4）打开 `+` 的 Tools & panels 菜单，验证
+  hover/focus `×` 与中键关闭。将一个标签拖到另一个标签的前后，确认显示插入指示器、
+  顺序更新且当前激活标签不变；在标签条左右边缘保持拖拽，确认隐藏标签自动滚动到可见，
+  插入指示器跟随目标更新；再使用 `Alt+ArrowLeft`/`Alt+ArrowRight` 重复验证。 4）打开 `+` 的 Tools & panels 菜单，验证
   浏览器和当前范围内的插件视图各出现一次，并处于活动状态，
   打开-非活动和关闭状态，并且出现转录打开的资源
   仅在第二部分。使用指针和键盘打开/选择每个可用视图，
@@ -2109,7 +2116,9 @@ hover/focus 不带移位标签，项目标题 hover/focus 路径显示
   更改操作系统窗口大小 - 仅 MainChat 在内部回流
   固定客户区 (ADR 0033)。一旦面板打开，标题栏显示可滚动的标签条和固定 `+`；
   `+` 菜单只列出 Review 与当前范围内的插件视图，不重复已打开的标签。标签
-  溢出时只有标签条滚动，活动标签滚动到可见范围；菜单淡入超过 ≤4px，并在
+  溢出时只有标签条滚动，活动标签滚动到可见范围；拖拽标签显示前后插入指示器，
+  靠近边缘保持拖拽会自动滚动到隐藏标签，松开后只更新标签顺序且保持当前资源激活；`Alt+ArrowLeft`/`Alt+ArrowRight` 提供相同的
+  键盘重排路径。菜单淡入超过 ≤4px，并在
   reduced motion 下保持静态。Arrow/Home/End 在标签或菜单项目间移动，
   Delete/Backspace 与中键关闭标签，Escape/Tab/选择将菜单焦点恢复到 `+`。
   重新打开已存在的工具会激活它并保留浏览器 URL。打开菜单时原生插件表面
