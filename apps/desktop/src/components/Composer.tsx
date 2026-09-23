@@ -6,10 +6,7 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import type {
-  Mode,
-  PermissionMode,
-} from "@pi-desktop/shared";
+import type { Mode } from "@pi-desktop/shared";
 import {
   initialThinkingLevelForBinding,
   imageGenerationBindings,
@@ -42,7 +39,7 @@ import {
   COMPOSER_MIN_HEIGHT_PX,
   PLACEHOLDER_KEYS,
   cssPixels,
-  isPermissionMode,
+  composerPermissionState,
   isThinkingLevel,
   thinkingLevelForProvider,
   thinkingProviderForModel,
@@ -313,23 +310,9 @@ export function Composer({
     isRunning &&
     planningState === "planning" &&
     (mode === "plan" || mode === "goal");
-  // Permission mode (D115/D132): inherited sessions still resolve through the
-  // global setting, but the composer presents only the effective mode.
-  const globalPermissionMode: PermissionMode =
-    settings?.defaultPermissionMode ?? "ask";
-  const sessionPermissionMode: PermissionMode = activeSession
-    ? isPermissionMode(activeSession.permissionMode)
-      ? activeSession.permissionMode
-      : "inherit"
-    : isPermissionMode(draftConfiguration?.permissionMode)
-      ? draftConfiguration.permissionMode
-      : "inherit";
-  const effectivePermissionMode: Exclude<PermissionMode, "inherit"> =
-    sessionPermissionMode === "inherit"
-      ? (globalPermissionMode as Exclude<PermissionMode, "inherit">)
-      : sessionPermissionMode;
-  const composerPermissionMode: Exclude<PermissionMode, "inherit"> =
-    mode === "goal" ? "auto" : effectivePermissionMode;
+  const { permissionMode: composerPermissionMode, sessionReviewer, effectiveReviewer } =
+    composerPermissionState({ mode, session: activeSession, draft: draftConfiguration,
+      globalPermissionMode: settings?.defaultPermissionMode, globalReviewer: settings?.approvalReviewer });
   const provider = providers.find(
     (candidate) =>
       candidate.id ===
@@ -595,6 +578,10 @@ export function Composer({
             modelId={modelId}
             thinkingLevel={thinkingLevel}
             composerPermissionMode={composerPermissionMode}
+            effectiveReviewer={effectiveReviewer}
+            sessionReviewer={sessionReviewer}
+            hasActiveSession={Boolean(activeSession && !nativeSession && !activeSessionId?.startsWith("remote:"))}
+            activeSessionId={activeSessionId ?? undefined}
             permissionOpen={permissionOpen}
             setPermissionOpen={setPermissionOpen}
             controlsBlocked={controlsBlocked}

@@ -32,7 +32,7 @@ Auto.
 ## 3. Decision types
 
 - `allow-once`
-- `allow-session` (scoped by toolName, **D006**)
+- `allow-session` (scoped to caller and explicit action; supersedes D006's tool-wide scope)
 - `deny`
 
 No `allow-always` in MVP.
@@ -112,9 +112,9 @@ The card adds two lines of provenance when they apply, on top of §6:
 - how many wait behind it — "N more request(s) are waiting" — so answering does
   not look like it finished the session's questions.
 
-Session grants are unchanged and still per `toolName` per session: a delegate's
-"Allow for session" also covers the parent and the other delegates
-(`03-runtime/03-tools-and-permissions.md` §10.2).
+Session grants bind the originating caller and explicit action. A delegate's
+"Allow for session" does not cover the parent or other delegates. The card
+shows the scope before granting; automatic review only permits Allow once.
 
 ## 7. Composer interaction while pending
 
@@ -136,10 +136,18 @@ Session grants are unchanged and still per `toolName` per session: a delegate's
 
 ## 8. Session grants surface
 
-Active session grants (toolName, grantedAt, clear action) remain runtime-owned.
-A durable grants-management surface is deferred until a host-backed settings
-schema exists; Settings must not render a control that cannot persist or affect
-the permission runtime.
+Active session grants remain host-owned and memory-only. The session permission
+surface lists their tool, caller, and scope, and supports individual and complete
+revocation through the host. Changing permission mode or reviewer clears grants.
+Revocation does not undo already executed effects. See
+[permission review](../03-runtime/23-permission-auto-review.md) for review states,
+takeover, model configuration, fallback, and additional usage disclosure.
+
+AI settings show the complete editable reviewer policy beside model/reasoning
+configuration, with explicit Save and Restore default. A custom policy replaces
+the default, not a hidden second layer. Display its default/custom status and
+the immutable Host/response constraints. Retain unsaved edits across settings
+refreshes and failed saves; changing the selected model must not reset the policy.
 
 ## 9. Plan and Goal contract approval card
 
@@ -183,7 +191,7 @@ after a full Host/app restart.
    under Auto, with the mutation tradeoff visible
 3. Agent mode uses the normal high-risk permission policy
 4. timeout becomes deny in UI + tool result
-5. allow-session suppresses repeat prompts for same toolName only
+5. allow-session suppresses repeat prompts only for the same caller and action scope
 6. concurrent session requests remain isolated and never take over the visible
    conversation or its work panel; post-approval artifacts remain assigned to
    the request's originating session

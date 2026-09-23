@@ -61,6 +61,7 @@ import { PromptEnhancementCard } from "./prompt-enhancement-card";
 import { CloseBehaviorSection, DeveloperSection } from "./developer-sections";
 import { PluginScenicThemesDestination } from "../../components/settings/PluginScenicThemesDestination";
 import { ConfigSyncPage } from "../../components/settings/ConfigSyncPage";
+import { PermissionReviewRows } from "./PermissionReviewRows";
 
 type SettingsTab = ReturnType<typeof useAppStore.getState>["settingsTab"];
 
@@ -84,6 +85,7 @@ export function SettingsPage() {
   const setSettingsAnchor = useAppStore((s) => s.setSettingsAnchor);
   const setPage = useAppStore((s) => s.setPage);
   const settings = useAppStore((s) => s.settings);
+  const reviewProviders = useAppStore((s) => s.providers);
   const version = useAppStore((s) => s.version);
   const refreshProviders = useAppStore((s) => s.refreshProviders);
   const platform = (window.piDesktop?.platform ?? "darwin") as ShortcutPlatform;
@@ -434,6 +436,7 @@ export function SettingsPage() {
                     ]}
                   />
                 </SettingsRow>
+                <PermissionReviewRows settings={settings} providers={reviewProviders} saveSettings={saveSettings} />
               </SettingsCard>
 
               <SettingsCard title={t("settings.defaultsTitle")}>
