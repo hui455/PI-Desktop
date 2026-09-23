@@ -2,16 +2,18 @@ import type {
   ModelInfo,
   Mode,
   PermissionMode,
+  ApprovalReviewer,
+  SessionApprovalReviewer,
   ProviderPublic,
   SessionThinkingLevel,
   ThinkingLevel,
 } from "@pi-desktop/shared";
 import {
   isSessionThinkingLevel,
-  modelIdsMatch,
   PERMISSION_MODES,
   sessionThinkingMenuLevels,
 } from "@pi-desktop/shared";
+import { sameComposerModelId } from "../../../lib/composer-models";
 import { providerThinkingLevels } from "../../../lib/session-thinking";
 
 export const COMPOSER_MIN_HEIGHT_PX = 28;
@@ -88,6 +90,23 @@ export function isPermissionMode(value: unknown): value is PermissionMode {
   );
 }
 
+/** One effective permission display state for a live session or draft. */
+export function composerPermissionState(input: {
+  mode: Mode;
+  session?: { permissionMode?: PermissionMode; approvalReviewer?: SessionApprovalReviewer };
+  draft?: { permissionMode?: PermissionMode } | null;
+  globalPermissionMode?: Exclude<PermissionMode, "inherit">;
+  globalReviewer?: ApprovalReviewer;
+}) {
+  const sessionMode = input.session?.permissionMode ?? input.draft?.permissionMode;
+  const selectedMode = isPermissionMode(sessionMode) ? sessionMode : "inherit";
+  const permissionMode = input.mode === "goal" ? "auto"
+    : selectedMode === "inherit" ? (input.globalPermissionMode ?? "ask") : selectedMode;
+  const sessionReviewer = input.session?.approvalReviewer ?? "inherit";
+  const effectiveReviewer = sessionReviewer === "inherit" ? (input.globalReviewer ?? "user") : sessionReviewer;
+  return { permissionMode, sessionReviewer, effectiveReviewer };
+}
+
 /**
  * Preserve the current level when changing providers, but never carry a
  * reasoning level into a provider that cannot accept it.
@@ -126,11 +145,11 @@ export function thinkingProviderForModel(
   modelCatalog: readonly ModelInfo[] | undefined,
 ): ProviderPublic | null | undefined {
   if (!provider || !modelId) return provider;
-  const model = modelCatalog?.find((candidate) => modelIdsMatch(candidate.modelId, modelId));
+  const model = modelCatalog?.find((candidate) => sameComposerModelId(candidate.modelId, modelId));
   if (!model) return provider;
 
   const binding = provider.models.find((candidate) =>
-    modelIdsMatch(candidate.id, model.modelId),
+    sameComposerModelId(candidate.id, model.modelId),
   );
   const configuredLevels = binding
     ? THINKING_LEVELS.filter((level) => binding.thinkingLevels.includes(level))

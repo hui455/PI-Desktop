@@ -88,7 +88,7 @@ test("image generation selection hides the summary when nothing can be chosen", 
     pickerSource,
     /className="provider-chosen-advanced-toggle"[^\n]*settings\.setImageModel/,
   );
-  assert.match(pickerSource, /imageModelIds\?\.some\([\s\S]*?modelIdsMatch/);
+  assert.match(pickerSource, /imageModelIds\?\.some\([\s\S]*?modelId\.toLowerCase\(\) === binding\.id\.toLowerCase\(\)/);
   assert.match(pickerSource, /onImageModelChange\(binding\.id, event\.target\.checked\)/);
   assert.match(imageModelRowSource, /imageGenerationBindings\(settings\.imageGenerationModels, null\)/);
   assert.match(imageModelRowSource, /if \(!options\.some\(\(option\) => !option\.disabled\)\) return null;/);

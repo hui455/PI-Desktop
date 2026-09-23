@@ -6,15 +6,11 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import type {
-  Mode,
-  PermissionMode,
-} from "@pi-desktop/shared";
+import type { Mode } from "@pi-desktop/shared";
 import {
   initialThinkingLevelForBinding,
   imageGenerationBindings,
   isImageGenerationModel,
-  modelIdsMatch,
   normalizeLargePasteThreshold,
   stripInlineComposerFileReferenceTokens,
 } from "@pi-desktop/shared";
@@ -23,10 +19,7 @@ import { latestTurnContextInspector } from "../lib/latest-turn-context";
 import { isActivePlanExecution } from "../lib/plan-mode-state";
 import { headAsk, queuedAskCount } from "../lib/pending-asks";
 import type { QueuedPrompt } from "../lib/queued-prompts";
-import {
-  composerModelDisplayName,
-  composerModelsForProvider,
-} from "../lib/composer-models";
+import { composerModelDisplayName, sameComposerModelId } from "../lib/composer-models";
 import {
   providerThinkingLevels,
   resolveComposerThinkingProvider,
@@ -42,7 +35,7 @@ import {
   COMPOSER_MIN_HEIGHT_PX,
   PLACEHOLDER_KEYS,
   cssPixels,
-  isPermissionMode,
+  composerPermissionState,
   isThinkingLevel,
   thinkingLevelForProvider,
   thinkingProviderForModel,
@@ -313,23 +306,9 @@ export function Composer({
     isRunning &&
     planningState === "planning" &&
     (mode === "plan" || mode === "goal");
-  // Permission mode (D115/D132): inherited sessions still resolve through the
-  // global setting, but the composer presents only the effective mode.
-  const globalPermissionMode: PermissionMode =
-    settings?.defaultPermissionMode ?? "ask";
-  const sessionPermissionMode: PermissionMode = activeSession
-    ? isPermissionMode(activeSession.permissionMode)
-      ? activeSession.permissionMode
-      : "inherit"
-    : isPermissionMode(draftConfiguration?.permissionMode)
-      ? draftConfiguration.permissionMode
-      : "inherit";
-  const effectivePermissionMode: Exclude<PermissionMode, "inherit"> =
-    sessionPermissionMode === "inherit"
-      ? (globalPermissionMode as Exclude<PermissionMode, "inherit">)
-      : sessionPermissionMode;
-  const composerPermissionMode: Exclude<PermissionMode, "inherit"> =
-    mode === "goal" ? "auto" : effectivePermissionMode;
+  const { permissionMode: composerPermissionMode, sessionReviewer, effectiveReviewer } =
+    composerPermissionState({ mode, session: activeSession, draft: draftConfiguration,
+      globalPermissionMode: settings?.defaultPermissionMode, globalReviewer: settings?.approvalReviewer });
   const provider = providers.find(
     (candidate) =>
       candidate.id ===
@@ -340,8 +319,7 @@ export function Composer({
   const modelId =
     activeSession?.modelId ??
     (!activeSession ? draftConfiguration?.modelId : undefined) ??
-    settings?.defaultModelId ??
-    provider?.defaultModelId;
+    (settings?.defaultModelId?.trim() || provider?.models?.[0]?.id || provider?.defaultModelId);
   const selectedModelCatalog = provider ? providerModels[provider.id] : undefined;
   const catalogThinkingProvider = thinkingProviderForModel(
     provider,
@@ -355,7 +333,7 @@ export function Composer({
     catalogThinkingProvider,
   });
   const selectedBinding = provider?.models.find((candidate) =>
-    modelIdsMatch(candidate.id, modelId ?? ""),
+    sameComposerModelId(candidate.id, modelId ?? ""),
   );
   // A draft without a session starts at the selected model's stored default
   // thinking level, clamped onto that binding's enabled ladder.
@@ -376,14 +354,12 @@ export function Composer({
     configuredThinkingLevel,
   );
   const thinkingLabel = thinkingLevel;
-  const selectedModel = provider?.id
-    ? composerModelsForProvider(provider, providerModels[provider.id], imageGenerationCandidates).find(
-        (model) => modelIdsMatch(model.modelId, modelId ?? ""),
-      )
-    : undefined;
-  const modelLabel = provider && modelId
-    ? composerModelDisplayName(provider, modelId, selectedModel?.displayName)
-    : selectedModel?.displayName || modelId || t("chat.model");
+  const selectedModelInfo = selectedModelCatalog?.find((candidate) =>
+    sameComposerModelId(candidate.modelId, modelId ?? ""),
+  );
+  const modelLabel = modelId
+    ? composerModelDisplayName(provider, modelId, selectedModelInfo?.displayName)
+    : t("chat.model");
   const modelMenu = useComposerModelMenu({
     configureActiveSession,
     mode,
@@ -595,6 +571,10 @@ export function Composer({
             modelId={modelId}
             thinkingLevel={thinkingLevel}
             composerPermissionMode={composerPermissionMode}
+            effectiveReviewer={effectiveReviewer}
+            sessionReviewer={sessionReviewer}
+            hasActiveSession={Boolean(activeSession && !nativeSession && !activeSessionId?.startsWith("remote:"))}
+            activeSessionId={activeSessionId ?? undefined}
             permissionOpen={permissionOpen}
             setPermissionOpen={setPermissionOpen}
             controlsBlocked={controlsBlocked}

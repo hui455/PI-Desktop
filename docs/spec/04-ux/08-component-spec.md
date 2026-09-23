@@ -1110,7 +1110,11 @@ entirely inside the plugin's isolated page:
   Review, file, or plugin view. Clicking a tab activates it; the active tab is
   scrolled into view. Its close button and middle-click close it, selecting the
   right neighbor and then the left. ArrowLeft/ArrowRight/Home/End move between
-  tabs and Delete/Backspace closes the focused tab. The `+` trigger remains
+  tabs and Delete/Backspace closes the focused tab. Pressing and moving a tab
+  by 8px starts reordering; dropping on either half of another tab inserts the
+  source before or after it. Holding the pointer near either edge auto-scrolls
+  the strip toward off-screen tabs. `Alt+ArrowLeft`/`Alt+ArrowRight` reorders
+  the focused tab without changing its active state. The `+` trigger remains
   fixed beside the strip and creates a new launcher tab.
 - New launcher: each `+` click creates a unique, active New tab. Its body uses
   the Review-plus-plugin tool list as buttons. Selecting a row replaces the

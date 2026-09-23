@@ -196,14 +196,14 @@ test("default model selection saves the exact model and provider", () => {
   assert.match(pageSource, /defaultProviderId: provider.id,[\s\S]*defaultModelId: modelId/);
   assert.match(pageSource, /onClick=\{\(\) => void setDefaultModel\(provider, modelId\)\}/);
   assert.match(pageSource, /visibleDefaultModelOptions\.map/);
-  assert.match(pageSource, /provider\.id === settings\.defaultProviderId &&[\s\S]*modelIdsMatch/);
+  assert.match(pageSource, /provider\.id === settings\.defaultProviderId &&[\s\S]*sameWireId/);
   assert.match(pageSource, /defaultModelId: firstModelId \?\? ""/);
   assert.match(
     pageSource,
     /settings\.defaultProviderId === saved\.id && firstModelId[\s\S]*defaultModelId: firstModelId/,
   );
-  // The summary line must go through the ownership-aware resolver.
-  assert.match(pageSource, /displayedDefaultModelId\(/);
+  // The summary line must resolve a configured complete wire id.
+  assert.match(pageSource, /displayedChatModelId\(/);
   assert.doesNotMatch(pageSource, /\{settings\.defaultModelId \|\|/);
 });
 
@@ -306,7 +306,7 @@ test("adding a service only claims the app default while none resolves", () => {
     /\} else if \(!editingProvider\) \{([\s\S]*?)\n      \} else \{/,
   );
   assert.ok(branch, "the add-provider branch moved");
-  const guard = branch[1].indexOf("keepsAppDefaultModel(");
+  const guard = branch[1].indexOf("const keepsCurrentDefault =");
   const write = branch[1].indexOf("api.setSettings(");
   assert.ok(guard >= 0, "the add branch must ask whether a default already resolves");
   assert.ok(write > guard, "the default write must sit inside that guard");
@@ -314,10 +314,9 @@ test("adding a service only claims the app default while none resolves", () => {
   // pinned by default-model-display.test.mjs. That resolver also requires the
   // default provider to be runnable (enabled, credentialed, a chat model
   // configured), so a keyless default row cannot block the new provider.
-  assert.match(pageSource, /keepsAppDefaultModel,[\s\S]{0,80}\} from "\.\/default-model"/);
-  // Provider readiness is one rule for the picker and the add guard.
-  assert.match(pageSource, /const providerReady = \(provider: ProviderPublic\) =>\n\s+providerServesChatModels\(provider, imageGenerationCandidates\)/);
-  assert.doesNotMatch(pageSource, /provider\.hasOauth \|\|/);
+  // Provider readiness and default selection use the same exact chat choices.
+  assert.match(pageSource, /chatModelOptions\(\[currentProvider\], imageGenerationCandidates\)/);
+  assert.match(pageSource, /providerServesChatModels\(provider, imageGenerationCandidates\)/);
 });
 
 test("a saved image selection never takes the app's image default", () => {
@@ -333,9 +332,41 @@ test("a hand-typed id is seeded from the model library, not only from generic de
   // answers, so a slow or offline catalog never leaves the list without it. The
   // rule itself is pinned by model-custom-lookup.test.mjs, and the channel
   // contract by provider-lookup-model-handler.test.mjs.
-  assert.match(pickerSource, /customModelSeedBinding\(id, discovered\?\.info\)/);
+  assert.match(pickerSource, /bindingForCustomModelInfo\(id, discovered\.info\)/);
   assert.match(pickerSource, /applyCustomModelLookup\(current, seed, info\)/);
   assert.match(pickerSource, /api\.lookupProviderModel\(/);
   // An id the current discovery already described needs no round trip.
   assert.match(pickerSource, /if \(!discovered\?\.info\) void enrichCustomModel\(binding\)/);
+});
+
+test("settings match complete case-normalized wire ids, not proxy suffixes", () => {
+  const identity = pageSource.match(/const sameWireId = \(left: string, right: string\) => ([^;]+);/);
+  assert.ok(identity);
+  const sameWireId = new Function("left", "right", `return ${identity[1]}`);
+  assert.equal(sameWireId("PROXY/model", "proxy/MODEL"), true);
+  assert.equal(sameWireId("proxy/model", "model"), false);
+  assert.match(pageSource, /isImageCandidate\(imageModels, provider\.id, id\)/);
+  assert.match(pageSource, /sameWireId\(settings\.defaultModelId \?\? "", modelId\)/);
+  assert.match(pageSource, /!models\.some\(\(model\) => sameWireId\(model\.id, settings\.defaultModelId/);
+  assert.doesNotMatch(pageSource, /modelIdsMatch|isImageGenerationModel/);
+  assert.doesNotMatch(setupSource, /modelIdsMatch/);
+  assert.doesNotMatch(pickerSource, /modelIdsMatch/);
+  assert.match(pickerSource, /info\.modelId\.toLowerCase\(\) !== seed\.id\.toLowerCase\(\)/);
+  assert.match(pickerSource, /bindingForCustomModelInfo\(row\.id, row\.info\)/);
+  assert.match(setupSource, /model\.id\.toLowerCase\(\) === imageModelId\.toLowerCase\(\)/);
+  assert.match(setupSource, /entry\.toLowerCase\(\) !== id\.toLowerCase\(\)/);
+});
+
+test("new chat default skips an image-only first model", () => {
+  assert.match(pageSource, /const firstModelId = models\.find\(\(model\) =>\s*!selectedImageIds\.some\(\(id\) => sameWireId\(id, model\.id\)\)/);
+  assert.match(pageSource, /if \(!keepsCurrentDefault && firstModelId\)/);
+});
+
+test("stale image-valued chat default remains visible but is not marked ready", () => {
+  assert.match(pageSource, /const defaultProviderReady = defaultProvider !== null && providerReady\(defaultProvider\) &&[\s\S]*?chatModelOptions\(\[defaultProvider\], imageGenerationCandidates\)\.some/);
+  assert.match(pageSource, /const effectiveDefaultModelId = settings\.defaultModelId\?\.trim\(\) \|\|\s*defaultProvider\?\.models\?\.\[0\]\?\.id \|\| defaultProvider\?\.defaultModelId/);
+  assert.match(pageSource, /sameWireId\(modelId, effectiveDefaultModelId \?\? ""\)/);
+  assert.match(pageSource, /return selected\?\.trim\(\) \|\| configured\[0\]/);
+  assert.match(pageSource, /className="model-default-model font-mono" title=\{t\("settings\.noDefaultProvider"\)\}/);
+  assert.match(pageSource, /\{settings\.defaultModelId\}/);
 });

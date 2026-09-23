@@ -500,11 +500,16 @@ may be retained while exactly one workspace supplies the visible shell context.
   unique New launcher tab; its data-driven Review, Files, Browser, and plugin
   view rows are ordinary buttons in the page body.
 - Tab focus uses roving `tabIndex`: ArrowLeft/ArrowRight/Home/End move across
-  tabs and Delete/Backspace closes the focused tab. Middle-click closes a tab;
-  closing an active tab selects the right neighbor, then the left. Selecting a
-  launcher row replaces that New tab with the destination or activates its
-  existing singleton. Shortcut labels appear only for bindings that actually
-  exist.
+  tabs and Delete/Backspace closes the focused tab. Pressing and moving a tab
+  by 8px starts pointer reordering; dropping on the target's left or right half
+  inserts before or after it, and `Alt+ArrowLeft`/`Alt+ArrowRight` provides the
+  keyboard equivalent. Holding the pointer near the tab strip's edge scrolls
+  toward off-screen tabs and keeps the drop indicator synchronized. The active
+  tab remains active after reordering.
+  Middle-click closes a tab; closing an active tab selects the right neighbor,
+  then the left. Selecting a launcher row replaces that New tab with the
+  destination or activates its existing singleton. Shortcut labels appear only
+  for bindings that actually exist.
 - Activating a tool that is already open activates its existing resource instead
   of replacing it, so Browser keeps its URL and Files its selection (D173).
 - Every resource can be closed from its tab. Closing the active resource selects

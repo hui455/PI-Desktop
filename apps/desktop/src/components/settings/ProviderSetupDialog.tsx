@@ -9,7 +9,6 @@ import { useTranslation } from "react-i18next";
 import {
   NAMED_ENDPOINT_PRESETS,
   OPENCODE_GO_API_STYLE,
-  modelIdsMatch,
   normalizeApiStyle,
   type CatalogApiStyle,
   type ModelBinding,
@@ -268,7 +267,7 @@ export function ProviderSetupDialog({
     // existing save path when the image selection did not change.
     const imageSelection = imageModelDraft ?? imageModelIds;
     const remainingImageModels = imageSelection?.filter((imageModelId) =>
-      persisted.some((model) => modelIdsMatch(model.id, imageModelId)),
+      persisted.some((model) => model.id.toLowerCase() === imageModelId.toLowerCase()),
     );
     const imageModelIdsToSave = imageModelDraft !== undefined ||
       remainingImageModels?.length !== imageSelection?.length
@@ -317,9 +316,9 @@ export function ProviderSetupDialog({
     setImageModelDraft((current) => {
       const next = current ?? imageModelIds ?? [];
       if (selected) {
-        return next.some((entry) => modelIdsMatch(entry, id)) ? next : [...next, id];
+        return next.some((entry) => entry.toLowerCase() === id.toLowerCase()) ? next : [...next, id];
       }
-      return next.filter((entry) => !modelIdsMatch(entry, id));
+      return next.filter((entry) => entry.toLowerCase() !== id.toLowerCase());
     });
   };
 
