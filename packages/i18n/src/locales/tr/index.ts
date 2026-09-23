@@ -1148,6 +1148,8 @@ sklm: {
     enterToSendDesc: "Kapalı: göndermek için ⌘/Ctrl+Enter.",
     infiniteProviderRetry: "Başarılı olana kadar yeniden dene",
     infiniteProviderRetryDesc: "Ağ ve geçici sağlayıcı hataları istek başarılı olana kadar yeniden denenir. Çalışmayı yine durdurabilirsiniz; açıkken API kullanımı sürebilir.",
+    smoothStreaming: "Düzgün akış",
+    smoothStreamingDesc: "Akan metni daktilo efekti için karakter karakter gösterir. Sistem hareket azaltmayı tercih ettiğinde otomatik devre dışı kalır.",
     linkOpenTarget: "Bağlantı açma hedefi",
     linkOpenTargetWorkpanel: "Çalışma paneli tarayıcısı",
     linkOpenTargetExternal: "Varsayılan sistem tarayıcısı",

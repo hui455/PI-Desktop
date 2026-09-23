@@ -1160,6 +1160,8 @@ sklm: {
     enterToSendDesc: "Off: press ⌘/Ctrl+Enter to send.",
     infiniteProviderRetry: "Retry until success",
     infiniteProviderRetryDesc: "Keep retrying network and transient provider failures until the request succeeds. You can still stop the turn; API usage may continue while enabled.",
+    smoothStreaming: "Smooth streaming",
+    smoothStreamingDesc: "Release streamed text character by character for a typewriter effect. Automatically disabled when the system prefers reduced motion.",
     linkOpenTarget: "Link open destination",
     linkOpenTargetWorkpanel: "Work panel browser",
     linkOpenTargetExternal: "Default OS browser",

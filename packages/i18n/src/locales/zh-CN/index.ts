@@ -1134,6 +1134,8 @@ sklm: {
     enterToSendDesc: "关闭后按 ⌘/Ctrl+Enter 发送。",
     infiniteProviderRetry: "无尽重试",
     infiniteProviderRetryDesc: "网络或临时服务故障会一直重试直到成功。仍可随时停止，但开启后可能持续消耗 API 用量。",
+    smoothStreaming: "平滑流式显示",
+    smoothStreamingDesc: "将流式文本逐字释放，产生打字机效果。系统开启“减少动态效果”时自动禁用。",
     linkOpenTarget: "链接打开位置",
     linkOpenTargetWorkpanel: "工作区浏览器",
     linkOpenTargetExternal: "系统默认浏览器",

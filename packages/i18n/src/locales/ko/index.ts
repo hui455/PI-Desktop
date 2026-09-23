@@ -1158,6 +1158,8 @@ sklm: {
     enterToSendDesc: "끔: ⌘/Ctrl+Enter를 눌러 보내세요.",
     infiniteProviderRetry: "성공할 때까지 재시도",
     infiniteProviderRetryDesc: "네트워크 및 일시적인 제공자 오류가 성공할 때까지 계속 재시도됩니다. 언제든 중지할 수 있지만 API 사용량이 계속 발생할 수 있습니다.",
+    smoothStreaming: "부드러운 스트리밍",
+    smoothStreamingDesc: "스트리밍 텍스트를 한 글자씩 타자기 효과로 표시합니다. 시스템에서 동작 줄이기를 선호하면 자동으로 비활성화됩니다.",
     linkOpenTarget: "링크 열기 위치",
     linkOpenTargetWorkpanel: "작업 패널 브라우저",
     linkOpenTargetExternal: "시스템 기본 브라우저",

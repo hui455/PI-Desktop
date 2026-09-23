@@ -1148,6 +1148,8 @@ sklm: {
     "enterToSendDesc": "Desactivado: presione ⌘/Ctrl+Entrar para enviar.",
     "infiniteProviderRetry": "Reintentar hasta tener éxito",
     "infiniteProviderRetryDesc": "Reintenta los errores de red y temporales hasta que la solicitud tenga éxito. Puedes detener el turno; el uso de la API puede continuar.",
+    "smoothStreaming": "Transmisión suave",
+    "smoothStreamingDesc": "Libera el texto transmitido carácter por carácter para un efecto de máquina de escribir. Se desactiva automáticamente cuando el sistema prefiere movimiento reducido.",
     "linkOpenTarget": "Destino al abrir enlaces",
     "linkOpenTargetWorkpanel": "Navegador del panel de trabajo",
     "linkOpenTargetExternal": "Navegador predeterminado del sistema",

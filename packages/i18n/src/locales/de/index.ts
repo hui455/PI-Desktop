@@ -1148,6 +1148,8 @@ sklm: {
     "enterToSendDesc": "Aus: Zum Senden ⌘/Strg+Eingabe drücken.",
     "infiniteProviderRetry": "Bis zum Erfolg wiederholen",
     "infiniteProviderRetryDesc": "Netzwerk- und vorübergehende Anbieterfehler werden bis zum Erfolg wiederholt. Du kannst den Lauf weiterhin stoppen; der API-Verbrauch kann fortlaufen.",
+    "smoothStreaming": "Sanftes Streaming",
+    "smoothStreamingDesc": "Gibt gestreamten Text zeichenweise aus, um einen Schreibmaschineneffekt zu erzeugen. Wird automatisch deaktiviert, wenn das System reduzierte Bewegung bevorzugt.",
     "linkOpenTarget": "Ziel für Link-Öffnung",
     "linkOpenTargetWorkpanel": "Arbeitsbereich-Browser",
     "linkOpenTargetExternal": "Standard-Betriebssystem-Browser",
