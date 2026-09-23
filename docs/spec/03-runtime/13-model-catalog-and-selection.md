@@ -56,6 +56,10 @@ entitled to it.
   and the runtime uses the binding's explicit set. A model that publishes no
   level list and no level map but does claim reasoning still seeds
   `low`/`medium`/`high`.
+- Checking an individual model on the left opens that model's Advanced sheet
+  on the right and closes the previously open sheet. The chosen pane scrolls
+  the opened row into view when needed. Adding a custom ID uses the same
+  single-open behavior; bulk selection leaves its existing disclosure choice.
 - Limit values render through one shared compact formatter
   (`formatCompactTokenCount`): up to two decimals at the `M` scale and one at
   the `K` scale, trailing zeros dropped, and a `K` mantissa that would round up

@@ -8,7 +8,7 @@
  * guarantee lives here once instead of in a convention two files had to
  * remember.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   THINKING_LEVELS,
@@ -237,6 +237,8 @@ export function ModelSelectionPanes({
     () => models[0]?.id ?? null,
   );
 
+  const chosenListRef = useRef<HTMLUListElement>(null);
+
   // The returned list is short and already local, so filtering is client-side:
   // no host search and no debounced IPC round trip.
   const visibleRows = useMemo(() => {
@@ -276,6 +278,13 @@ export function ModelSelectionPanes({
     if (models.length === 0) setChosenQuery("");
   }, [models.length]);
 
+  useEffect(() => {
+    if (!expandedModelId) return;
+    chosenListRef.current?.querySelector<HTMLButtonElement>(
+      '.provider-chosen-advanced-toggle[aria-expanded="true"]',
+    )?.closest("li")?.scrollIntoView({ block: "nearest" });
+  }, [expandedModelId]);
+
   // The hosted web search tool only exists on two wires; on any other
   // style the opt-in cannot work, so the checkbox stays present but disabled
   // with an explanatory hint instead of silently doing nothing.
@@ -313,7 +322,7 @@ export function ModelSelectionPanes({
       (binding) => binding.id.toLowerCase() === wanted,
     );
     if (!alreadyChosen) {
-      setExpandedModelId((open) => open ?? row.id);
+      setExpandedModelId(row.id);
       keepAddedModelVisible([bindingForRow(row)]);
     }
     setModels((current) => {
@@ -562,7 +571,7 @@ export function ModelSelectionPanes({
         ) : visibleChosen.length === 0 ? (
           <div className="provider-chosen-empty">{t("settings.noChosenModelMatches")}</div>
         ) : (
-          <ul className="provider-chosen-list">
+          <ul className="provider-chosen-list" ref={chosenListRef}>
             {visibleChosen.map((binding) => {
               // The catalog is a baseline, not a capability gate. Always show
               // the canonical ladder so a proxy or newly released model can be

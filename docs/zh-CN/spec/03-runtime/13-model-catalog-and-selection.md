@@ -29,6 +29,10 @@
 - 列表标题旁的全选复选框一次勾选或取消当前可见行。搜索过滤时，“全部”只作用于匹配行；过滤外已选模型保持不变。已选绑定保留高级覆盖；新勾选的行采用 `bindingFromModelInfo` 或自定义模型默认值。可见行全部选中时为勾选，全部未选时为空，部分选中时为不确定态。
 - 同一标题旁的「获取列表」会立刻向服务探测，跳过 600 ms 编辑防抖和先画缓存。没有可探测端点、正在探测或表单保存时不可用；空闲但端点已有效（防抖等待）时仍可点，以便跳过该窗口。加载期间保留现有行。凭据变更触发的自动发现不变。
 
+Selecting a discovered model opens that model's Advanced settings on the
+right and closes the previously open settings. The chosen list scrolls the
+opened row into view when needed. Adding a custom ID follows the same
+single-open behavior; bulk selection retains its existing disclosure choice.
 ### 设置：已选模型顺序
 
 AI 服务和 OAuth 厂商账户编辑器共用已选模型面板。每个已选行都有独立的排序手柄：
