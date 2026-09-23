@@ -230,6 +230,8 @@ export type AppState = {
   applyQueueChanged: (event: AgentQueueChangedEvent) => void;
   compactContext: () => Promise<void>;
   retryAssistantMessage: (messageId: string) => Promise<void>;
+  /** Read canonical text before opening a user-message editor. */
+  prepareUserMessageEdit: (messageId: string, signal?: AbortSignal) => Promise<UiMessage | null>;
   /** Replace a user prompt and regenerate from it. */
   editUserMessage: (
     messageId: string,
@@ -314,7 +316,8 @@ export type AppState = {
   /** Reload contributed work panel views. */
   refreshPluginViews: () => Promise<void>;
   refreshNotifications: () => Promise<void>;
-  receiveNotification: (notification: AppNotification) => void;
+  /** Returns true only when this event was accepted as a new durable row. */
+  receiveNotification: (notification: AppNotification) => boolean;
   markNotificationRead: (id: string) => Promise<void>;
   markAllNotificationsRead: () => Promise<void>;
   clearNotifications: () => Promise<void>;

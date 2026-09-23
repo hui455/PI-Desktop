@@ -174,6 +174,18 @@ test("the shared picker owns the advanced per-model controls for both kinds", ()
   assert.match(pickerSource, /bindingsToPersist/);
 });
 
+test("fetched model selections stay collapsed until Advanced is requested", () => {
+  assert.match(
+    pickerSource,
+    /const \[expandedModelId, setExpandedModelId\] = useState<string \| null>\(null\)/,
+  );
+  assert.doesNotMatch(
+    pickerSource,
+    /setExpandedModelId\(\(open\) => open \?\? (?:row\.id|visibleRows\[0\])/,
+  );
+  assert.match(pickerSource, /current === binding\.id \? null : binding\.id/);
+});
+
 test("a vendor account saves explicit bindings, not raw state", () => {
   // The shared picker preserves explicit thinking levels, including a manual
   // override not present in the catalog.

@@ -233,9 +233,10 @@ export function ModelSelectionPanes({
   const [chosenQuery, setChosenQuery] = useState("");
   const [customModelId, setCustomModelId] = useState("");
   const [customModelError, setCustomModelError] = useState("");
-  const [expandedModelId, setExpandedModelId] = useState<string | null>(
-    () => models[0]?.id ?? null,
-  );
+  // Keep fetched selections scannable. Expanding the first row by default can
+  // fill the pane with its controls and push every other checked model below
+  // the fold, which makes a successful multi-select look empty.
+  const [expandedModelId, setExpandedModelId] = useState<string | null>(null);
 
   // The returned list is short and already local, so filtering is client-side:
   // no host search and no debounced IPC round trip.
@@ -313,7 +314,6 @@ export function ModelSelectionPanes({
       (binding) => binding.id.toLowerCase() === wanted,
     );
     if (!alreadyChosen) {
-      setExpandedModelId((open) => open ?? row.id);
       keepAddedModelVisible([bindingForRow(row)]);
     }
     setModels((current) => {
@@ -326,7 +326,6 @@ export function ModelSelectionPanes({
 
   const toggleVisibleModels = (select: boolean) => {
     if (select) {
-      setExpandedModelId((open) => open ?? visibleRows[0]?.id ?? null);
       const added = visibleRows
         .filter((row) => !selected.has(row.id.toLowerCase()))
         .map((row) => bindingForRow(row));

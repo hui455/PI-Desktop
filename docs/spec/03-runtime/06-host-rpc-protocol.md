@@ -759,6 +759,10 @@ type NotificationListResult = {
 - `notification.markAllRead({}) -> { ok: true }` updates every unread row in
   one transaction.
 - `notification.clear({}) -> { ok: true }` deletes inbox rows only.
+- `id` is the stable exactly-once key for renderer and native delivery. A
+  client must discard duplicate or delayed records for an id it has already
+  acknowledged/cleared; clearing the inbox never makes an old terminal turn
+  eligible for insertion again. A later terminal turn receives a new id.
 - No `notification.created` JSON-RPC server notification is emitted. Electron
   receives the inserted record directly from `session.endTurn`, avoiding a
   second ordering channel between terminal turn persistence and UI refresh.

@@ -236,7 +236,8 @@ test("the advanced body is a compact sheet without helper paragraphs", () => {
   );
   assert.doesNotMatch(pickerSource, /hint=\{t\("settings\.modelAliasHint"\)\}/);
   assert.match(pickerSource, /aria-controls=\{advancedId\}/);
-  assert.match(pickerSource, /models\[0\]\?\.id \?\? null/);
+  // Keep the selected-model summary visible until Advanced is requested.
+  assert.match(pickerSource, /useState<string \| null>\(null\)/);
   assert.match(
     pickerSource,
     /className="provider-chosen-thinking-head">[\s\S]*?provider-chosen-thinking-default[\s\S]*?provider-chosen-thinking-chips/,

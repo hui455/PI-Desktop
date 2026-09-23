@@ -48,6 +48,7 @@
 - [21-image-generation.md](/zh-CN/spec/03-runtime/21-image-generation)
 - [22-config-sync.md](/zh-CN/spec/03-runtime/22-config-sync)
 - [23-permission-auto-review.md](/zh-CN/spec/03-runtime/23-permission-auto-review)
+- [svg-attachment-input.md](/zh-CN/spec/03-runtime/svg-attachment-input)
 
 ## 4. 用户体验
 - [README.md](/zh-CN/spec/04-ux/README)
