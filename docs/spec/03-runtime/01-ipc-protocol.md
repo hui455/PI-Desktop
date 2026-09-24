@@ -1462,6 +1462,11 @@ project records from the global set by id or case-insensitive label before it
 filters disabled records, so a disabled project record still shadows a global
 one. The desktop-only `mcp/test` IPC action forces one connection test and
 returns its status to the MCP editor.
+Stopping a session aborts its in-flight user MCP tool calls. The client sends
+`notifications/cancelled` for each active request without closing a connection
+used by other sessions; a completed or canceled tool call is never replayed.
+Cancellation stops the local wait, while a server may ignore the notification
+and finish an already started side effect.
 
 Desktop-only channels scan configuration written by other agent tools on the
 same machine — Claude Desktop (`claude_desktop_config.json` on macOS, Windows
