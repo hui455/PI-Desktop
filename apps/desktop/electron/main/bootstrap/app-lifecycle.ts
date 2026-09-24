@@ -27,6 +27,7 @@ import type { PluginRuntime } from "../plugin-runtime";
 import type { PluginViewHost } from "../plugin-view-host";
 import type { HostProcess } from "../host-process";
 import { syncPluginDisplayLocale } from "../plugin-display-locale";
+import { createPowerSaveBlockerController } from "../keep-awake";
 import type { PluginAppearance } from "../../shared/plugin-panel-chrome";
 
 export type ApplicationLifecycleState = {
@@ -471,19 +472,33 @@ export function createApplicationLifecycle({
     }
   }
 
-  /** Active power-save blocker id, or null when not blocking. */
-  let powerSaveBlockerId: number | null = null;
+  const powerError = (kind: string, operation: string, error: unknown) => {
+    logger.app("lifecycle", "warn", `power blocker ${kind} ${operation} failed`, {
+      data: String(error),
+    });
+  };
+  const displayBlocker = createPowerSaveBlockerController(
+    powerSaveBlocker,
+    "prevent-display-sleep",
+    (operation, error) => powerError("display", operation, error),
+  );
+  const systemBlocker = createPowerSaveBlockerController(
+    powerSaveBlocker,
+    "prevent-app-suspension",
+    (operation, error) => powerError("system", operation, error),
+  );
 
   function applyPreventScreenSleep(settings?: { preventScreenSleep?: unknown } | null) {
-    const next = settings?.preventScreenSleep === true;
-    if (next && powerSaveBlockerId === null) {
-      powerSaveBlockerId = powerSaveBlocker.start("prevent-display-sleep");
-    } else if (!next && powerSaveBlockerId !== null) {
-      if (powerSaveBlocker.isStarted(powerSaveBlockerId)) {
-        powerSaveBlocker.stop(powerSaveBlockerId);
-      }
-      powerSaveBlockerId = null;
-    }
+    displayBlocker.setEnabled(settings?.preventScreenSleep === true);
+  }
+
+  function applyKeepAwakeWhileRunning(settings?: { keepAwakeWhileRunning?: unknown } | null) {
+    systemBlocker.setEnabled(settings?.keepAwakeWhileRunning === true);
+  }
+
+  function disposePowerSaveBlockers() {
+    displayBlocker.dispose();
+    systemBlocker.dispose();
   }
 
   /**
@@ -663,6 +678,8 @@ export function createApplicationLifecycle({
     dispatchNativeMenuAction,
     applyDeveloperMode,
     applyPreventScreenSleep,
+    applyKeepAwakeWhileRunning,
+    disposePowerSaveBlockers,
     applyNativeThemeSource,
     applyAppThemePreference,
     applyApplicationMenuSettings,

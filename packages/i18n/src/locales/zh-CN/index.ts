@@ -582,6 +582,9 @@ export const zhCN = {
     dismiss: "关闭",
   },
   settings: {
+    power: "电源",
+    keepAwakeWhileRunning: "保持电脑唤醒",
+    keepAwakeWhileRunningDesc: "PI-Desktop 运行期间阻止电脑因空闲自动休眠。屏幕仍可能关闭；手动睡眠和合盖休眠不受影响。",
     imageModel: "生图模型",
     imageModelUnset: "未配置",
     imageModelUnavailable: "暂不可用",

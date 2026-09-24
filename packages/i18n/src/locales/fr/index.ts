@@ -578,6 +578,9 @@ export const fr = {
     "dismiss": "Ignorer"
   },
   "settings": {
+    "power": "Alimentation",
+    "keepAwakeWhileRunning": "Garder l'ordinateur éveillé",
+    "keepAwakeWhileRunningDesc": "Empêche la veille due à l'inactivité pendant l'exécution de PI-Desktop. L'écran peut s'éteindre ; la veille manuelle et la fermeture du capot restent possibles.",
     "imageModel": "Modèle de génération d’images",
     "imageModelUnset": "Non configuré",
     "imageModelUnavailable": "Indisponible pour le moment",

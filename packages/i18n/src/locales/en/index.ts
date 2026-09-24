@@ -585,6 +585,9 @@ export const en = {
     dismiss: "Dismiss",
   },
   settings: {
+    power: "Power",
+    keepAwakeWhileRunning: "Keep computer awake",
+    keepAwakeWhileRunningDesc: "Prevent idle system sleep while PI-Desktop is running. The display may turn off; manual sleep and closing the lid still work.",
     imageModel: "Image generation model",
     imageModelUnset: "Not configured",
     imageModelUnavailable: "Currently unavailable",

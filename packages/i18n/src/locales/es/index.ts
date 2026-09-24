@@ -578,6 +578,9 @@ export const es = {
     "dismiss": "Descartar"
   },
   "settings": {
+    "power": "Energía",
+    "keepAwakeWhileRunning": "Mantener el equipo activo",
+    "keepAwakeWhileRunningDesc": "Evita la suspensión por inactividad mientras PI-Desktop esté abierto. La pantalla puede apagarse; la suspensión manual y al cerrar la tapa siguen funcionando.",
     "imageModel": "Modelo de imágenes",
     "imageModelUnset": "Sin configurar",
     "imageModelUnavailable": "No disponible por ahora",

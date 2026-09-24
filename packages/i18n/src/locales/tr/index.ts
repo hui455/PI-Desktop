@@ -587,6 +587,9 @@ export const tr = {
     dismiss: "Kapat",
   },
   settings: {
+    power: "Güç",
+    keepAwakeWhileRunning: "Bilgisayarı uyanık tut",
+    keepAwakeWhileRunningDesc: "PI-Desktop çalışırken boşta kalma nedeniyle uykuya geçmeyi önler. Ekran kapanabilir; elle uyutma ve kapağı kapatma etkilenmez.",
     "imageModel": "Görsel oluşturma modeli",
     "imageModelUnset": "Yapılandırılmadı",
     "imageModelUnavailable": "Şu anda kullanılamıyor",

@@ -24,6 +24,25 @@
   session IPC contract tests, and real-model desktop acceptance. A local model
   fixture or mocked component result is not real-model acceptance evidence.
 
+### E2E-POWER-keep-awake-setting
+
+- **Preconditions:** An isolated desktop profile with the setting absent; no
+  live provider is required.
+- **Steps:** Open Settings > General and enable Keep computer awake. Confirm the
+  main process owns one `prevent-app-suspension` blocker while idle. Close and
+  reopen the app using the same profile; confirm it restores one blocker.
+  Enable and disable Prevent screen sleep while Keep computer awake stays on,
+  confirming the independent system request remains. Disable Keep computer awake
+  and confirm its blocker is released; then quit and confirm cleanup.
+- **Expected:** The setting persists, acts immediately, never starts duplicate
+  blockers, and releases on disable or app shutdown. The display switch keeps
+  its own blocker and cannot disable the system blocker. Manual sleep and lid
+  close are outside this contract.
+- **Status:** Automated in `pnpm test:e2e:keep-awake`, with a real isolated
+  Electron/Host profile and a Windows `powercfg /requests` assertion when no
+  other Electron power request is present at baseline. Controller lifecycle
+  and Host settings round-trip also have targeted tests.
+
 ### E2E-IMAGES-provider-save-feedback
 
 - **Preconditions:** Image configuration UI fixture; English and Chinese.

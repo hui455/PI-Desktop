@@ -36,6 +36,8 @@ export type AppSettings = {
    * Absent and false use the bounded ten-retry policy.
    */
   infiniteProviderRetry?: boolean;
+  /** Prevent idle system sleep while this desktop app runs; off when absent. */
+  keepAwakeWhileRunning?: boolean;
   /** Configured command shell for the agent Bash protocol tool. */
   defaultCommandShell?: CommandShellId;
   /**

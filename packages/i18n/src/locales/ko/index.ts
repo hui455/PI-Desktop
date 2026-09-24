@@ -587,6 +587,9 @@ export const ko = {
     dismiss: "닫기",
   },
   settings: {
+    power: "전원",
+    keepAwakeWhileRunning: "컴퓨터 절전 방지",
+    keepAwakeWhileRunningDesc: "PI-Desktop 실행 중 유휴 상태로 인한 시스템 절전을 방지합니다. 화면은 꺼질 수 있으며 수동 절전과 덮개 닫기는 그대로 작동합니다.",
     "imageModel": "이미지 생성 모델",
     "imageModelUnset": "설정되지 않음",
     "imageModelUnavailable": "현재 사용 불가",

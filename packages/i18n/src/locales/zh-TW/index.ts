@@ -582,6 +582,9 @@ export const zhTW = {
     dismiss: "關閉",
   },
   settings: {
+    power: "電源",
+    keepAwakeWhileRunning: "保持電腦喚醒",
+    keepAwakeWhileRunningDesc: "PI-Desktop 執行期間阻止電腦因閒置自動休眠。螢幕仍可能關閉；手動睡眠和闔蓋休眠不受影響。",
     imageModel: "生圖模型",
     imageModelUnset: "未設定",
     imageModelUnavailable: "暫不可用",

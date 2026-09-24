@@ -104,6 +104,7 @@ export function registerIpcHandlers(dependencies: RegisterIpcDependencies) {
     applyApplicationMenuSettings,
     applyDeveloperMode,
     applyPreventScreenSleep,
+    applyKeepAwakeWhileRunning,
     resolveEffectiveCommandShell,
     modelsDevCatalog,
     vendorOAuth,
@@ -262,6 +263,7 @@ export function registerIpcHandlers(dependencies: RegisterIpcDependencies) {
     applyApplicationMenuSettings,
     applyDeveloperMode,
     applyPreventScreenSleep,
+    applyKeepAwakeWhileRunning,
     resolveEffectiveCommandShell,
   });
   registerConfigSyncIpc({

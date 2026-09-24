@@ -407,7 +407,19 @@ export function SettingsPage() {
 
               <NetworkProxySection settings={settings} saveSettings={saveSettings} />
 
-              <SettingsCard>
+              <SettingsCard title={t("settings.power")}>
+                <SettingsRow
+                  title={t("settings.keepAwakeWhileRunning")}
+                  description={t("settings.keepAwakeWhileRunningDesc")}
+                >
+                  <SettingsToggle
+                    checked={settings.keepAwakeWhileRunning === true}
+                    label={t("settings.keepAwakeWhileRunning")}
+                    onChange={() => void saveSettings({
+                      keepAwakeWhileRunning: settings.keepAwakeWhileRunning !== true,
+                    })}
+                  />
+                </SettingsRow>
                 <SettingsRow
                   title={t("settings.preventScreenSleep")}
                   description={t("settings.preventScreenSleepDesc")}
