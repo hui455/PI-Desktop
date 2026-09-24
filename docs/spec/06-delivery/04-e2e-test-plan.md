@@ -15012,6 +15012,17 @@ the latest destination. These assertions measure work counts, not device FPS.
 | Scenario | Acceptance | Specification | Automation |
 | --- | --- | --- | --- |
 | E2E-IMAGE-generation-and-editing | Image capability and recovery | 03-runtime/21-image-generation | Host and UI suites above |
+| E2E-IMAGES-result-download | Download and locate a generated result | 03-runtime/21-image-generation | `scripts/e2e-image-chat.mjs` |
+
+### E2E-IMAGES-result-download
+
+- **Preconditions:** Agent conversation with two successful generated PNGs and a local image fixture.
+- **Steps:** Verify one selected card and two adjacent thumbnails, download the first result, select and download the second, inspect the narrow chat layout, open the selected image in the full-window viewer, navigate both directions, zoom in, close with Escape, and inspect Show in folder.
+- **Expected:** The selected card and download target follow thumbnail selection. The selected thumbnail has a light gray ring, and switching loaded images keeps the card and viewer image present with stable fit dimensions throughout. Rapid reverse navigation cancels a pending decode. Both downloaded PNGs match their saved bytes and have safe filenames. Chat and viewer thumbnails remain reachable at narrow widths; viewer selection, zoom and focus restoration work, and the selected image remains selected in chat. The originals remain available. The folder action uses the contained file reveal path.
+- **Specs:** 03-runtime/21-image-generation.
+- **Acceptance:** Result actions and image browsing work without changing image storage or preview access.
+- **Milestone:** Post-MVP.
+- **Status:** Download and viewer interactions automated by `scripts/e2e-image-chat.mjs`; folder reveal uses the existing contained IPC path.
 
 #### E2E-CHAT-parenthesized-url: Complete URLs in user messages
 
