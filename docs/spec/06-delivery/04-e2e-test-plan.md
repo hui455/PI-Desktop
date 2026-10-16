@@ -3501,6 +3501,15 @@ identify the platform validation still needed.
 
 - **Focus regression**: In light and dark themes, open a marketplace card and press Escape. Like pointer dismissal, Escape leaves no line or focus ring on the card. Then use Tab and Shift+Tab: the detail button shows a complete, unclipped ring, and Install remains separately focusable. Automated focus-state regression: `node scripts/e2e-plugin-detail-focus.mjs`; verify the rendered ring visually.
 
+#### E2E-PLUGIN-reviews-public-reads: Public ratings and reviews stay read-only in the desktop
+
+- **Preconditions**: Extensions reachable with at least one installed and one marketplace plugin the centre knows, plus a second run against a centre that has no review API.
+- **Steps**: 1) Open Extensions → Installed and, without visiting Marketplace, confirm a published plugin's card shows a rating chip only when the centre returned a summary. 2) Open a marketplace card's detail sheet and read the ratings summary between Permissions and Versions; press "See all reviews". 3) In the drawer, filter by sentiment and switch between newest and most helpful; page with Load more. 4) Inspect the composer: it is disabled, and its one action is the link to the plugin centre page. 5) Press Escape once (only the drawer closes) and again (the sheet closes). 6) Reopen the sheet and confirm the drawer left its scroll position untouched. 7) Repeat against the centre without review support and read the summary.
+- **Expected**: Installed and marketplace ids are batched into one summary read that never requires a Marketplace refresh; an unavailable centre shows no fabricated zeros, and the detail summary says ratings are unavailable — while the review entry stays reachable and the drawer retries its own list, so its disabled composer and its web link (official fallback until the host reports `reviewUrl`) are never lost; a successful summary read replaces the ratings for the ids just requested, so a plugin the centre stops serving loses its stale rating chip; the chip rides the card's existing metadata line and adds no row; the drawer covers the mounted detail sheet, keeps its scroll position, closes on the first Escape only, returns focus to its opener (Escape claims the key with preventDefault/stopPropagation; the covered sheet is inert and Tab is trapped inside the drawer), appends pages deduplicated by review id, and drops an answer for a filter the user already left; a review's version reads as user-reported, never as an installed version; the composer accepts no input, and the only write path is the real link opened through `browserOpenExternal` in the system browser on a primary or middle click (right-click stays with the platform menu), with a failed open reported as a toast; no sign-in, vote, report, or review-writing UI exists in any locale.
+- **Specs linked**: `07-plugins/07-plugin-marketplace.md` §7, `07-plugins/14-plugin-roadmap.md`
+- **Acceptance**: G (Extensions page) + Security
+- **Status**: Automated fixture (`node scripts/e2e-plugin-reviews-drawer.mjs`: three probes — full path with card chip, section order, paging/dedup, filter stale-drop, error+retry, link href/middle-click-only/failure toast, Tab trap + inert, Escape/focus/scroll restoration; stale-summary replacement; unavailable-summary drawer entry + retry + fallback link) plus unit-covered (`plugin-reviews-logic.test.mjs`, `plugin-reviews-surface.test.mjs`)
+
 #### E2E-024F: Refresh the official marketplace catalog
 
 - **Preconditions**: Network available to `plugins.aiuo.net`.
@@ -3631,7 +3640,7 @@ identify the platform validation still needed.
 
 - **Preconditions**: At least one enabled plugin, one disabled plugin, and one plugin whose load failed.
 - **Steps**: 1) Open Extensions → Installed while plugin changed events are arriving in a burst. 2) Read the tab and group counts. 3) Confirm the failed plugin sits under Needs attention with its error message. 4) Search by author and by permission. 5) Clear the search.
-- **Expected**: The page remains usable during transient host backpressure: identical plugin and extension registry refreshes coalesce, and renderer-facing RPC calls retry explicit `HOST_OVERLOADED` responses with bounded backoff before surfacing an error. Rows group as Needs attention / Updates available / Active / Turned off with counts; `status: "error" | "load_error"` renders the error message inline instead of being silent; each row defaults to a two-line name/id/version summary, while a Details disclosure reveals risk-tinted permission chips, capabilities, and resident service status; the single scope trigger opens explained Off / This project / Everywhere choices and the project picker; row icon actions expose hover/focus labels; the result count reflects the filtered subset and clearing restores every group.
+- **Expected**: The page remains usable during transient host backpressure: identical plugin and extension registry refreshes coalesce, and renderer-facing RPC calls retry explicit `HOST_OVERLOADED` responses with bounded backoff before surfacing an error. Plugins group as Needs attention / Updates available / Active / Turned off with counts; `status: "error" | "load_error"` renders the error message inline instead of being silent; each plugin is a card in an auto-filling grid, defaulting to a quiet name/id/version summary (plus a rating chip when the centre has one), while a Details disclosure reveals risk-tinted permission chips, capabilities, and resident service status; the single scope trigger opens explained Off / This project / Everywhere choices and the project picker; card icon actions expose hover/focus labels; the result count reflects the filtered subset and clearing restores every group.
 - **Specs linked**: `04-ux/01-ui-ia.md`, `07-plugins/13-plugin-permissions-matrix.md`
 - **Acceptance**: G (installed plugin management)
 - **Status**: Documented
@@ -3857,11 +3866,14 @@ window; opening a normal panel afterward must still work.
   the compact two-tier header presents the extension mark/title and contextual
   action rail below the native window-control band, then confirm the Installed and Marketplace tabs are the only tabs and both reach the content
   without a four-card numeric overview band or explanatory header/section
-  paragraphs. 3) Confirm installed rows begin
-  as a quiet two-line summary, then expand Details on one row and inspect its
-  capabilities, service status, and permissions. 4) Use the compact scope
-  control and its explained scope menu, contextual primary action, and a
-  secondary update/action button. 5)
+  paragraphs. 3) Confirm installed plugins are cards in an
+  auto-filling grid — cards keep their width above 340px and collapse below —
+  then expand Details on one card and inspect its capabilities, service status,
+  and permissions. 4) Use the compact scope
+  control and its explained scope menu, the card's one call to action (Update to
+  the available version, or Open panel), and the 28px settings and overflow icon
+  actions; widen and narrow the window to see the rail wrap at the card's left
+  edge rather than clip. 5)
   Switch to light theme and repeat. 6) Keyboard-focus the Details disclosure,
   scope states, and each action.
 - **Expected**: The four numeric overview cards are absent; the header uses a
@@ -3870,10 +3882,11 @@ window; opening a normal panel afterward must still work.
   installed group counts, and any update alert remain available in their
   relevant surfaces. The page header, section headers, empty states, and update
   alert use compact labels and actions; decision-specific explanations remain
-  in disclosures, details, and dialogs. Installed rows keep their default height low while the
+  in disclosures, details, and dialogs. Cards keep their default height low while the
   disclosure exposes the complete secondary readout. The scope trigger stays
-  aligned with the row action rail, its menu explains each state, and icon
-  actions remain visible at rest while showing labels on hover and focus.
+  aligned with the card's control rail, its menu explains each state, and icon
+  actions remain visible at rest while showing labels on hover and focus; a
+  disabled card shows no primary action and no settings icon.
   Primary and secondary buttons keep
   visible semantic surfaces, text, borders, hover states, and focus rings in
   both themes, and keyboard focus does not depend on pointer hover.
@@ -3881,7 +3894,8 @@ window; opening a normal panel afterward must still work.
   `07-plugins/07-plugin-marketplace.md`, ADR 0058, D196
 - **Acceptance**: G (Extensions page) + Quality
 - **Status**: Unit-covered (`extensions-page.test.mjs`,
-  `plugins-page-style.test.mjs`); visual scenario Draft
+  `plugins-page-style.test.mjs`, `plugin-reviews-surface.test.mjs`);
+  visual scenario Draft
 
 #### E2E-024O: Marketplace hides development-only sample plugins
 
@@ -10108,9 +10122,9 @@ must keep splitting are covered by `markdown-blocks.test.mjs`.
 | F — Persistence | E2E-020, E2E-021, E2E-021a, E2E-038, E2E-SETTINGS-inline-capability-imports, E2E-040, E2E-042, E2E-047, E2E-048, E2E-051, E2E-054, E2E-056, E2E-061, E2E-062, E2E-064, E2E-066, E2E-068, E2E-071, E2E-072, E2E-073, E2E-082, E2E-084, E2E-096, E2E-098, E2E-102, E2E-102b, E2E-102c, E2E-102d, E2E-102g, E2E-102i, E2E-103, E2E-AGENTS-001, E2E-061a, E2E-073a, E2E-104, E2E-106, E2E-107, E2E-108, E2E-109, E2E-110, E2E-112, E2E-118, E2E-119, E2E-120, E2E-121, E2E-123, E2E-142, E2E-146, E2E-146a, E2E-148, E2E-151, E2E-158, E2E-160, E2E-168, E2E-171, E2E-177, E2E-178, E2E-183, E2E-186, E2E-005J, E2E-PROVIDER-custom-endpoint-no-api-key, E2E-PLUGIN-session-orchestrator-real-workers, E2E-PLUGIN-provider-catalog-add-service, E2E-SESSION-outbox-unclassifiable-failure-does-not-stall-the-queue |
 | F — Persistence (project ordering) | E2E-251 |
 | G / Security — Fetch redirect policy | E2E-PLUGIN-fetch-redirect-policy |
-| G — Plugins | E2E-022, E2E-022A, E2E-022B, E2E-022C, E2E-023, E2E-024, E2E-024B, E2E-024C, E2E-024D, E2E-024AA, E2E-024E, E2E-024W, E2E-024F, E2E-024G, E2E-024H, E2E-024I, E2E-024J, E2E-024K, E2E-024L, E2E-024M, E2E-024N, E2E-024O, E2E-024P, E2E-025, E2E-026, E2E-105, E2E-117, E2E-120, E2E-122, E2E-123, E2E-024Q, E2E-148, E2E-152, E2E-153, E2E-PLUGIN-imported-pi-package-skills, E2E-PLUGIN-imported-pi-package-wrapper, E2E-PLUGIN-import-extension-installs-dependencies, E2E-PLUGIN-import-extension-reports-missing-dependency, E2E-PLUGIN-global-shortcut-owns-only-its-own-command, E2E-PLUGIN-permission-gate-for-real-time-capabilities, E2E-PLUGIN-background-audio-and-realtime-connection, E2E-PLUGIN-fs-root-follows-the-calling-session, E2E-PLUGIN-provider-catalog-add-service |
+| G — Plugins | E2E-022, E2E-022A, E2E-022B, E2E-022C, E2E-023, E2E-024, E2E-024B, E2E-024C, E2E-024D, E2E-024AA, E2E-024E, E2E-024W, E2E-024F, E2E-024G, E2E-024H, E2E-024I, E2E-024J, E2E-024K, E2E-024L, E2E-024M, E2E-024N, E2E-024O, E2E-024P, E2E-025, E2E-026, E2E-105, E2E-117, E2E-120, E2E-122, E2E-123, E2E-024Q, E2E-148, E2E-152, E2E-153, E2E-PLUGIN-imported-pi-package-skills, E2E-PLUGIN-imported-pi-package-wrapper, E2E-PLUGIN-import-extension-installs-dependencies, E2E-PLUGIN-import-extension-reports-missing-dependency, E2E-PLUGIN-global-shortcut-owns-only-its-own-command, E2E-PLUGIN-permission-gate-for-real-time-capabilities, E2E-PLUGIN-background-audio-and-realtime-connection, E2E-PLUGIN-fs-root-follows-the-calling-session, E2E-PLUGIN-provider-catalog-add-service, E2E-PLUGIN-reviews-public-reads |
 | H — Diagnostics | E2E-027, E2E-031, E2E-034, E2E-042, E2E-096, E2E-098, E2E-104, E2E-107, E2E-108, E2E-109, E2E-110, E2E-113, E2E-115, E2E-116, E2E-118, E2E-121, E2E-146, E2E-146a, E2E-155, E2E-159, E2E-176, E2E-194, E2E-195 |
-| Security | E2E-SETTINGS-inline-capability-imports, E2E-028, E2E-029, E2E-030, E2E-024J, E2E-024K, E2E-024M, E2E-049, E2E-068, E2E-086, E2E-102c, E2E-102d, E2E-102e, E2E-105, E2E-106, E2E-107, E2E-108, E2E-109, E2E-110, E2E-112, E2E-113, E2E-115, E2E-116, E2E-117, E2E-119, E2E-121, E2E-122, E2E-123, E2E-142, E2E-148, E2E-151, E2E-153, E2E-158, E2E-187, E2E-196c, E2E-196b, E2E-196, E2E-PROVIDER-custom-endpoint-no-api-key, E2E-PLUGIN-fs-root-follows-the-calling-session, E2E-PLUGIN-provider-catalog-add-service |
+| Security | E2E-SETTINGS-inline-capability-imports, E2E-028, E2E-029, E2E-030, E2E-024J, E2E-024K, E2E-024M, E2E-049, E2E-068, E2E-086, E2E-102c, E2E-102d, E2E-102e, E2E-105, E2E-106, E2E-107, E2E-108, E2E-109, E2E-110, E2E-112, E2E-113, E2E-115, E2E-116, E2E-117, E2E-119, E2E-121, E2E-122, E2E-123, E2E-142, E2E-148, E2E-151, E2E-153, E2E-158, E2E-187, E2E-196c, E2E-196b, E2E-196, E2E-PROVIDER-custom-endpoint-no-api-key, E2E-PLUGIN-fs-root-follows-the-calling-session, E2E-PLUGIN-provider-catalog-add-service, E2E-PLUGIN-reviews-public-reads |
 | Quality | E2E-SETTINGS-inline-capability-imports, E2E-CHAT-long-history-stream-keeps-responsive, E2E-CHAT-running-status-survives-output-pauses, E2E-032, E2E-033, E2E-039, E2E-043, E2E-044, E2E-045, E2E-046, E2E-047, E2E-048, E2E-048A, E2E-049, E2E-050, E2E-053, E2E-055, E2E-056, E2E-057, E2E-058, E2E-059, E2E-060, E2E-061, E2E-062, E2E-063, E2E-064, E2E-065, E2E-066, E2E-067, E2E-068, E2E-069, E2E-070, E2E-071, E2E-072, E2E-073, E2E-074, E2E-075, E2E-076, E2E-077, E2E-078, E2E-079, E2E-080, E2E-081, E2E-082, E2E-083, E2E-084, E2E-085, E2E-086, E2E-092, E2E-093, E2E-094, E2E-095, E2E-096, E2E-097, E2E-098, E2E-099, E2E-100, E2E-101, E2E-102, E2E-102a, E2E-102b, E2E-102c, E2E-102d, E2E-102e, E2E-103, E2E-AGENTS-001, E2E-021a, E2E-024N, E2E-059a, E2E-060b, E2E-060c, E2E-061a, E2E-073a, E2E-111, E2E-114, E2E-117, E2E-118, E2E-119, E2E-120, E2E-122, E2E-123, E2E-142, E2E-143, E2E-144, E2E-145, E2E-146, E2E-147, E2E-148, E2E-150, E2E-151, E2E-153, E2E-155, E2E-158, E2E-159, E2E-160, E2E-161, E2E-162, E2E-163, E2E-168, E2E-172, E2E-173, E2E-174, E2E-011g, E2E-176, E2E-177, E2E-178, E2E-179, E2E-180, E2E-181, E2E-182, E2E-183, E2E-186, E2E-187, E2E-194, E2E-195, E2E-196a, E2E-196b, E2E-196c, E2E-198, E2E-199, E2E-200, E2E-196, E2E-201, E2E-204, E2E-202, E2E-203, E2E-205, E2E-206, E2E-207, E2E-208, E2E-209, E2E-210, E2E-UPDATE-preference-and-once-only-reminder, E2E-218, E2E-259, E2E-219, E2E-250, E2E-252, E2E-102i, E2E-SUBAGENT-settlement-updates-before-parent-poll, E2E-PLUGIN-imported-pi-package-skills, E2E-PLUGIN-fs-root-follows-the-calling-session, E2E-SUBAGENT-resume-a-settled-delegation, E2E-PLUGIN-provider-catalog-add-service |
 | Quality (sidebar menu placement) | E2E-021c |
 | Quality (project ordering) | E2E-253 |

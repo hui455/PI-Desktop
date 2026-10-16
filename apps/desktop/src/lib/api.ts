@@ -72,6 +72,9 @@ import type {
   MarketPluginDetail,
   PluginInstallResult,
   PluginInstallProgress,
+  PluginReviewPage,
+  PluginReviewQuery,
+  PluginReviewSummary,
   ProjectRecord,
   ProjectGroupRecord,
   ProjectMemory,
@@ -1475,6 +1478,19 @@ export const api = {
   /** Ask the running install to stop. Only a download can be interrupted. */
   marketCancelInstall: (id: string) =>
     invoke<{ cancelled: boolean; id: string }>(IPC.invoke.marketCancelInstall, { id }),
+  /**
+   * Public rating summaries for plugin ids, keyed by id. Anonymous read
+   * through the host; an unreachable or older center rejects instead of
+   * answering fabricated zeros, so callers show an unavailable state.
+   */
+  marketReviewSummaries: (pluginIds: string[]) =>
+    invoke<{ summaries: Record<string, PluginReviewSummary> }>(
+      IPC.invoke.marketReviewSummaries,
+      { pluginIds },
+    ).then((result) => result.summaries),
+  /** One page of public reviews, its summary, and the trusted review URL. */
+  marketReviews: (query: PluginReviewQuery) =>
+    invoke<PluginReviewPage>(IPC.invoke.marketReviews, query),
   /** Import a pi CLI extension file or directory as a development plugin (spec 16 §3). */
   importPiExtension: () =>
     invoke<

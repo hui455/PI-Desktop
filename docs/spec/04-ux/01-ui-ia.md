@@ -372,13 +372,17 @@ schedule. Renaming an Hourly task does not restart its interval.
 ### 3.4 Extensions
 
 The Extensions destination is a focused plugin surface with a compact header and
-only two tabs: **Installed** and **Marketplace**. Installed groups plugin rows
+only two tabs: **Installed** and **Marketplace**. Installed groups plugin cards
 by state — Needs attention / Updates available / Active / Turned off — as soft
-tiles stacked under a group label (D296). Marketplace remains the browse/install
-card grid and always uses the official catalog. The page draws no dividers:
-header, toolbar, rows, cards and the detail sheet's sections are set apart by
-tone and spacing, and hairlines are reserved for floating layers (menus, sheet,
-dialogs). MCP, Skills, and Subagents are not tabs or sections of Extensions.
+tiles in an auto-filling card grid under a group label (D296). Marketplace
+remains the browse/install card grid and always uses the official catalog.
+Public ratings and reviews are read-only here: cards carry a rating chip, the
+detail sheet carries a ratings summary, and a review drawer opens over the
+sheet; writing a review is a link out to the plugin centre's own page. The page
+draws no dividers: header, toolbar, cards and the detail sheet's sections are
+set apart by tone and spacing, and hairlines are reserved for floating layers
+(menus, sheet, dialogs). MCP, Skills, and Subagents are not tabs or sections of
+Extensions.
 
 ### 3.5 Settings (full-page takeover)
 ### 3.5 Settings (full-page takeover)

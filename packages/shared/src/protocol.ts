@@ -2,7 +2,7 @@ export const PROTOCOL_VERSION = 11 as const;
 export const SCHEMA_VERSION = 16 as const;
 export const APP_ID = "net.aiuo.pi-desktop";
 export const APP_NAME = "PI-Desktop";
-export const APP_VERSION = "0.21.0-beta.1";
+export const APP_VERSION = "0.21.0-beta.2";
 
 export const APP_MENU_COMMANDS = [
   "newTask",
@@ -383,6 +383,8 @@ export const IPC = {
     marketCheckUpdates: "pi-desktop/market/checkUpdates",
     marketApplyUpdates: "pi-desktop/market/applyUpdates",
     marketCancelInstall: "pi-desktop/market/cancelInstall",
+    marketReviewSummaries: "pi-desktop/market/reviewSummaries",
+    marketReviews: "pi-desktop/market/reviews",
     commandPaletteSearch: "pi-desktop/commandPalette/search",
     commandPaletteExecute: "pi-desktop/commandPalette/execute",
     logOpenFolder: "pi-desktop/log/openFolder",
