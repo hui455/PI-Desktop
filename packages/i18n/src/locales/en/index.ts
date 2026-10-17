@@ -814,6 +814,7 @@ export const en = {
     sidebarRunningIndicatorsDesc: "Mark projects that have work in progress in the sidebar, including when the project is collapsed. Turning this off hides both markers below.",
     sidebarRunningBadge: "Count badge",
     sidebarRunningRail: "Activity rail",
+    sidebarSessionTime: "Session time",
     keepAwakeWhileRunning: "Keep computer awake",
     keepAwakeWhileRunningDesc: "Prevent idle system sleep while PI-Desktop is running. The display may turn off; manual sleep and closing the lid still work.",
     imageModel: "Image generation model",

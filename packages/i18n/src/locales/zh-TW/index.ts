@@ -807,6 +807,7 @@ export const zhTW = {
     sidebarRunningIndicatorsDesc: "在側邊欄標記有任務正在執行的專案，專案收合時同樣可見。關閉後會同時隱藏下面兩個標識。",
     sidebarRunningBadge: "數量徽標",
     sidebarRunningRail: "活動流光",
+    sidebarSessionTime: "會話時間",
     keepAwakeWhileRunning: "保持電腦喚醒",
     keepAwakeWhileRunningDesc: "PI-Desktop 執行期間阻止電腦因閒置自動休眠。螢幕仍可能關閉；手動睡眠和闔蓋休眠不受影響。",
     imageModel: "生圖模型",

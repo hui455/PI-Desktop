@@ -811,6 +811,7 @@ export const tr = {
     sidebarRunningIndicatorsDesc: "Çalışması süren projeleri kenar çubuğunda işaretler; proje daraltılmışken de görünür. Kapatmak aşağıdaki iki işareti birlikte gizler.",
     sidebarRunningBadge: "Sayı rozeti",
     sidebarRunningRail: "Etkinlik şeridi",
+    sidebarSessionTime: "Oturum saati",
     keepAwakeWhileRunning: "Bilgisayarı uyanık tut",
     keepAwakeWhileRunningDesc: "PI-Desktop çalışırken boşta kalma nedeniyle uykuya geçmeyi önler. Ekran kapanabilir; elle uyutma ve kapağı kapatma etkilenmez.",
     "imageModel": "Görsel oluşturma modeli",

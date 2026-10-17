@@ -10,6 +10,7 @@ export const frEntries: ChangelogEntry[] = [
       "Les longues commandes Bash continuent en tâche de fond à la fin du tour, et leur sortie reste consultable.",
       "Les conversations parallèles d’un projet s’exécutent chacune dans un worktree Git isolé.",
       "Gardez la liste Todo à côté du Composer et développez-la pour voir toute la liste.",
+      "Repérez l’étape en cours : un reflet lumineux traverse son texte, et les lignes terminées restent du texte barré tout simple.",
       "Les commandes Bash et le raisonnement s’affichent sur des lignes distinctes dans la conversation.",
       "L’en-tête des projets signale l’activité en cours même lorsque le groupe est replié ; le compteur et la barre d’activité se règlent séparément.",
       "Copiez les détails du projet et de la conversation depuis les sous-menus contextuels de la barre latérale.",

@@ -807,6 +807,7 @@ export const zhCN = {
     sidebarRunningIndicatorsDesc: "在侧边栏标记有任务正在运行的项目，折叠项目时同样可见。关闭后将同时隐藏下面两个标识。",
     sidebarRunningBadge: "数量徽标",
     sidebarRunningRail: "活动流光",
+    sidebarSessionTime: "会话时间",
     keepAwakeWhileRunning: "保持电脑唤醒",
     keepAwakeWhileRunningDesc: "PI-Desktop 运行期间阻止电脑因空闲自动休眠。屏幕仍可能关闭；手动睡眠和合盖休眠不受影响。",
     imageModel: "生图模型",

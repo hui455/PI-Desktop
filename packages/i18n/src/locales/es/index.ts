@@ -802,6 +802,7 @@ export const es = {
     "sidebarRunningIndicatorsDesc": "Marca en la barra lateral los proyectos con trabajo en curso, incluso cuando el proyecto está contraído. Al desactivarlo se ocultan ambos indicadores.",
     "sidebarRunningBadge": "Insignia de recuento",
     "sidebarRunningRail": "Carril de actividad",
+    sidebarSessionTime: "Hora de sesión",
     "keepAwakeWhileRunning": "Mantener el equipo activo",
     "keepAwakeWhileRunningDesc": "Evita la suspensión por inactividad mientras PI-Desktop esté abierto. La pantalla puede apagarse; la suspensión manual y al cerrar la tapa siguen funcionando.",
     "imageModel": "Modelo de imágenes",

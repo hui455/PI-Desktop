@@ -802,6 +802,7 @@ export const de = {
     "sidebarRunningIndicatorsDesc": "Markiert Projekte mit laufender Arbeit in der Seitenleiste, auch wenn das Projekt eingeklappt ist. Ausschalten blendet beide Markierungen unten aus.",
     "sidebarRunningBadge": "Anzahl-Badge",
     "sidebarRunningRail": "Aktivitätsschiene",
+    sidebarSessionTime: "Sitzungszeit",
     "keepAwakeWhileRunning": "Computer wach halten",
     "keepAwakeWhileRunningDesc": "Verhindert den Ruhezustand bei Inaktivität, solange PI-Desktop läuft. Der Bildschirm kann sich ausschalten; manuelles Schlafen und Zuklappen bleiben möglich.",
     "imageModel": "Bildgenerierungsmodell",

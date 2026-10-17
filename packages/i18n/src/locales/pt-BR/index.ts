@@ -801,6 +801,7 @@ export const ptBR = {
     sidebarRunningIndicatorsDesc: "Marca na barra lateral os projetos com trabalho em andamento, inclusive quando o projeto está recolhido. Desativar oculta os dois indicadores abaixo.",
     sidebarRunningBadge: "Selo de contagem",
     sidebarRunningRail: "Trilho de atividade",
+    sidebarSessionTime: "Horário da sessão",
     keepAwakeWhileRunning: "Manter o computador ativo",
     keepAwakeWhileRunningDesc: "Impede a suspensão por inatividade enquanto o PI-Desktop estiver aberto. A tela pode apagar; a suspensão manual e ao fechar a tampa continuam funcionando.",
     imageModel: "Modelo de imagens",

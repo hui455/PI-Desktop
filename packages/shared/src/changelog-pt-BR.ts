@@ -10,6 +10,7 @@ export const ptBREntries: ChangelogEntry[] = [
       "Comandos Bash longos continuam em tarefas em segundo plano após o turno, e você pode consultar a saída depois.",
       "Conversas paralelas do mesmo projeto são executadas em worktrees Git isoladas.",
       "Mantenha a lista Todo ao lado do Composer e expanda-a quando precisar ver tudo.",
+      "Veja qual etapa está em execução: uma faixa de luz atravessa o texto dela, e as linhas concluídas ficam como texto riscado simples.",
       "Comandos Bash e raciocínio aparecem em linhas separadas na conversa.",
       "O cabeçalho do projeto mostra atividades em andamento mesmo quando recolhido; configure o contador e a faixa de atividade separadamente.",
       "Copie detalhes de projetos e sessões pelos submenus de contexto da barra lateral.",

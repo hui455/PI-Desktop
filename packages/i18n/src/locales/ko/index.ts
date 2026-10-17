@@ -811,6 +811,7 @@ export const ko = {
     sidebarRunningIndicatorsDesc: "작업이 진행 중인 프로젝트를 사이드바에 표시하며, 프로젝트를 접었을 때도 보입니다. 끄면 아래 두 표시가 함께 숨겨집니다.",
     sidebarRunningBadge: "개수 배지",
     sidebarRunningRail: "활동 레일",
+    sidebarSessionTime: "세션 시간",
     keepAwakeWhileRunning: "컴퓨터 절전 방지",
     keepAwakeWhileRunningDesc: "PI-Desktop 실행 중 유휴 상태로 인한 시스템 절전을 방지합니다. 화면은 꺼질 수 있으며 수동 절전과 덮개 닫기는 그대로 작동합니다.",
     "imageModel": "이미지 생성 모델",
